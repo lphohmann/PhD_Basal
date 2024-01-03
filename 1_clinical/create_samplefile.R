@@ -1,4 +1,4 @@
-# Script: create sample files for SCANB
+# Script: sampleID included in analyses for SCANB
 # Author: Lennart Hohmann
 # Date: 01.01.2024
 #-------------------

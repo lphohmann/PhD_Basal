@@ -32,7 +32,8 @@ dir.create(data.path)
 #-------------------
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <-  "./data/Parameters/color_palette.RData"
+infile.2 <- "./data/Parameters/color_palette.RData"
+infile.3 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 # output paths
 plot.file <- paste0(output.path,cohort,"_SA.pdf")
 txt.file <- paste0(output.path,cohort,"_SA.txt")
@@ -43,18 +44,18 @@ plot.list <- list() # object to store plots
 txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
 
 #######################################################################
-
+# load data
 #######################################################################
 
 # load sampleIDs
-sampleIDs <- loadRData(infile.1)
+sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
 
 # load palette
-color.palette <- loadRData(infile.2)
+color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
 names(color.palette) <- paste0("PAM50=", names(color.palette))
 
 # review 1 data
-svdata.rs1 <- loadRData(file="./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData") %>% 
+svdata.rs1 <- loadRData(infile.3) %>% 
   # sample selection
   filter(Follow.up.cohort==TRUE) %>%
   filter(Sample %in% unname(unlist(sampleIDs))) %>% 
@@ -73,11 +74,11 @@ svdata.rs1 <- loadRData(file="./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4
                 LN = LNstatus_Bosch) %>%
   mutate(across(c(IDFS,IDFSbin,Age,TumSize), as.numeric)) %>%
   mutate(Grade = factor(Grade, levels = c("1","2","3"))) %>%
-  mutate(PAM50 = factor(PAM50, levels = c("LumA","LumB","Her2","Basal"))) %>%
+  mutate(PAM50 = relevel(factor(PAM50), ref = "LumA")) %>%
   mutate(LN = factor(LN, levels = c("N0","N+")))
 
 # rel4 data
-svdata.rel4 <- loadRData(file="./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData") %>% 
+svdata.rel4 <- loadRData(infile.3) %>% 
   # sample selection
   filter(Follow.up.cohort==TRUE) %>%
   filter(Sample %in% unname(unlist(sampleIDs))) %>% 
@@ -93,7 +94,7 @@ svdata.rel4 <- loadRData(file="./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel
   mutate(LN = ifelse(LN > 0, "N+", "N0")) %>%
   mutate(across(c(OS,OSbin,Age,TumSize), as.numeric)) %>%
   mutate(Grade = factor(Grade, levels = c("1","2","3"))) %>%
-  mutate(PAM50 = factor(PAM50, levels = c("LumA","LumB","Her2","Basal"))) %>%
+  mutate(PAM50 = relevel(factor(PAM50), ref = "LumA")) %>%
   mutate(LN = factor(LN, levels = c("N0","N+")))
 
 #######################################################################
@@ -123,13 +124,13 @@ EC.fit <- survminer::surv_fit(EC.surv~PAM50, data=EC.dat,
 plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; CT+ET; ",OM)
 txt.out <- append(txt.out,
                   c(plot.title, "\n", 
-                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: CT+ET"),"\n\n"))
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: CT+ET"),"\n###########################################\n"))
 # subtype numbers
 txt.out <- append(txt.out,
                   c(capture.output(table(EC.dat$PAM50)),"\n\n"))
 # add the median OM of censored patients
 median.EC <- median(EC.dat[which(EC.dat[[OMbin]]==0),][[OM]])
-txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n\n"))
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n###########################################\n"))
 
 ##########################
 
@@ -140,7 +141,7 @@ plot <- ggforest(main.pam50,data=EC.dat,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ##########################
 
@@ -171,7 +172,7 @@ plot <- ggforest(main.all,
          main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ########################################
 # Investigate the Endo treatment group
@@ -187,13 +188,13 @@ E.fit <- survminer::surv_fit(E.surv~PAM50, data=E.dat,
 plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; ET; ",OM)
 txt.out <- append(txt.out,
                   c(plot.title, "\n", 
-                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: ET"),"\n\n"))
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: ET"),"\n###########################################\n"))
 # subtype numbers
 txt.out <- append(txt.out,
-                  c(capture.output(table(E.dat$PAM50)),"\n\n"))
+                  c(capture.output(table(E.dat$PAM50)),"\n###########################################\n"))
 # add the median OM of censored patients
 median.E <- median(E.dat[which(E.dat[[OMbin]]==0),][[OM]])
-txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n\n"))
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n###########################################\n"))
 
 ##########################
 
@@ -204,7 +205,7 @@ plot <- ggforest(main.pam50,data=E.dat,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ##########################
 
@@ -235,7 +236,7 @@ plot <- ggforest(main.all,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 #######################################################################
 # Part 2: OS
@@ -263,13 +264,13 @@ EC.fit <- survminer::surv_fit(EC.surv~PAM50, data=EC.dat,
 plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; CT+ET; ",OM)
 txt.out <- append(txt.out,
                   c(plot.title, "\n", 
-                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: CT+ET"),"\n\n"))
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: CT+ET"),"\n###########################################\n"))
 # subtype numbers
 txt.out <- append(txt.out,
-                  c(capture.output(table(EC.dat$PAM50)),"\n\n"))
+                  c(capture.output(table(EC.dat$PAM50)),"\n###########################################\n"))
 # add the median OM of censored patients
 median.EC <- median(EC.dat[which(EC.dat[[OMbin]]==0),][[OM]])
-txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n\n"))
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n###########################################\n"))
 
 ##########################
 
@@ -280,7 +281,7 @@ plot <- ggforest(main.pam50,data=EC.dat,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ##########################
 
@@ -311,7 +312,7 @@ plot <- ggforest(main.all,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ########################################
 # Investigate the Endo treatment group
@@ -327,13 +328,13 @@ E.fit <- survminer::surv_fit(E.surv~PAM50, data=E.dat,
 plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; ET; ",OM)
 txt.out <- append(txt.out,
                   c(plot.title, "\n", 
-                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: ET"),"\n\n"))
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: ET"),"\n###########################################\n"))
 # subtype numbers
 txt.out <- append(txt.out,
-                  c(capture.output(table(E.dat$PAM50)),"\n\n"))
+                  c(capture.output(table(E.dat$PAM50)),"\n###########################################\n"))
 # add the median OM of censored patients
 median.E <- median(E.dat[which(E.dat[[OMbin]]==0),][[OM]])
-txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n\n"))
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n###########################################\n"))
 
 ##########################
 
@@ -344,7 +345,7 @@ plot <- ggforest(main.pam50,data=E.dat,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 ##########################
 
@@ -375,7 +376,7 @@ plot <- ggforest(main.all,
                  main=plot.title) + theme_bw()
 
 plot.list <- append(plot.list,list(plot))
-txt.out <- append(txt.out,c(capture.output(res),"\n\n"))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
 
 #######################################################################
 #######################################################################
