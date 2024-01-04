@@ -29,7 +29,7 @@ infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 # output paths
 outfile.1 <- paste0(output.path,cohort,"_clinpath_table1.xlsx")
-outfile.2 <- paste0(output.path,cohort,"_clinpath_review_table2.xlsx")
+outfile.2 <- paste0(output.path,cohort,"_clinpath_table2.xlsx")
 #plot.file <- paste0(output.path,cohort,"_SA.pdf")
 txt.file <- paste0(output.path,cohort,"_variables.txt")
 #-------------------
@@ -65,6 +65,7 @@ anno <- loadRData(infile.2) %>%
     Size_Bosch = TumSize_Bosch)
 
 # data type correction
+anno$Bosch_RS1[is.na(anno$Bosch_RS1)] <- 0
 anno$NHG_Bosch <- as.factor(anno$NHG_Bosch)
 anno$LN_Bosch <- as.factor(anno$LN_Bosch)
 anno$PR[anno$PR == ""] <- NA
@@ -89,7 +90,7 @@ col.names <- c("Variable","Basal(ref)","Basal.%","LumA","LumA.%","LumB","LumB.%"
 
 ########################################################################
 # 1. data vars (not review)
-# table 1: N, Age, size, PR, NHG, LN, % review, H2low
+# table 1: N, Age, size, PR, NHG, LN, % review, H2low (review)
 
 #######################################################################
 # PAM50 count
@@ -135,6 +136,8 @@ res.lumb <- wilcox.test(age.data[Basal.ids,"Age"],age.data[LumB.ids,"Age"])
 #res.luma <- t.test(age.data[Basal.ids,"Age"],age.data[LumA.ids,"Age"])
 #res.lumb <- t.test(age.data[Basal.ids,"Age"],age.data[LumB.ids,"Age"])
 
+txt.out <- append(txt.out, c("\nAge\n",
+                             "\n###########################################\n"))
 txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
 txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
 
@@ -169,6 +172,8 @@ size.df$Variable <- "Size"
 res.luma <- wilcox.test(size.data[Basal.ids,"Size"],size.data[LumA.ids,"Size"])
 res.lumb <- wilcox.test(size.data[Basal.ids,"Size"],size.data[LumB.ids,"Size"])
 
+txt.out <- append(txt.out, c("\nSize\n",
+                             "\n###########################################\n"))
 txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
 txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
 
@@ -188,12 +193,18 @@ size.df
 # 4. NHG (2x3 contingency table)
 #######################################################################
 
-nhg.data <- anno %>% filter(!is.na(NHG))
+nhg.data <- anno %>% filter(!is.na(NHG)) %>% 
+  dplyr::select(PAM50,NHG)
 #table(anno$PAM50,is.na(anno$NHG))
 
 ct <- table(nhg.data$PAM50,nhg.data$NHG)
 res.luma <- fisher.test(ct[c("Basal","LumA"),])
 res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nNHG\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
 
 variable <- c("NHG1","NHG2","NHG3")
 basal.counts <- unname(ct["Basal",])
@@ -216,334 +227,354 @@ nhg.df
 # 4. LN (2x2 contingency table)
 #######################################################################
 
-ln.data <- anno %>% filter(!is.na(LN))
-table(anno$PAM50,is.na(anno$LN))
+ln.data <- anno %>% filter(!is.na(LN)) %>% 
+  dplyr::select(PAM50,LN)
+#table(anno$PAM50,is.na(anno$LN))
+
+ct <- table(ln.data$PAM50,ln.data$LN)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nLN\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("LN.N0","LN.N+")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+ln.df <- as.data.frame(cbind(variable,
+                             basal.counts,basal.perc,
+                             luma.counts,luma.perc,
+                             lumb.counts,lumb.perc))
+
+names(ln.df) <- col.names
+ln.df
+
+#######################################################################
+# HER2low frequency (2x2 contingency table)
+#######################################################################
+  
+h2low.data <- anno %>% filter(!is.na(HER2_Low)) %>% 
+  dplyr::select(PAM50,HER2_Low)
+#table(anno$PAM50,is.na(anno$HER2_Low))
+
+ct <- table(h2low.data$PAM50,h2low.data$HER2_Low)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nHER2low\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("HER2low.No","HER2low.Yes")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+h2low.df <- as.data.frame(cbind(variable,
+                                basal.counts,basal.perc,
+                                luma.counts,luma.perc,
+                                lumb.counts,lumb.perc))
+
+names(h2low.df) <- col.names
+h2low.df
+
+
+#######################################################################
+# PR status (2x2 contingency table)
+#######################################################################
+
+pr.data <- anno %>% filter(!is.na(PR)) %>% 
+  dplyr::select(PAM50,PR)
+
+ct <- table(pr.data$PAM50,pr.data$PR)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nPR\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("PR.neg","PR.pos")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+pr.df <- as.data.frame(cbind(variable,
+                             basal.counts,basal.perc,
+                             luma.counts,luma.perc,
+                             lumb.counts,lumb.perc))
+
+names(pr.df) <- col.names
+pr.df
+
+#######################################################################
+# % reviewed 
+#######################################################################
+
+ct <- table(anno$PAM50,anno$Bosch_RS1)
+variable <- c("N.non_reviewed","N.reviewed")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+
+rev.count <- as.data.frame(cbind(variable,
+                             basal.counts,basal.perc,
+                             luma.counts,luma.perc,
+                             lumb.counts,lumb.perc))
+
+names(rev.count) <- col.names
+rev.count
+
+#######################################################################
+# filter anno to only include review data
+anno <- anno %>% filter(Bosch_RS1 == 1)
+
+#######################################################################
+# PAM50 count in review
+#######################################################################
 
 # matrix
-ln.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-names(ln.df) <- col.names
-ln.df$Variable <- c("LN.N0","LN.N+")
+pam50.count.rs1 <- as.data.frame(matrix(ncol=length(col.names)))
+names(pam50.count.rs1) <- col.names
+pam50.count.rs1$Variable <- "N.RS1"
 
-ln.df <- test.2x2ct(data = ln.data,
-           var.df = ln.df,
-           var = "LN")
+t <- table(anno$PAM50)
 
-#######################################################################
-# 4. IC10 (only Metabric)
-if (cohort=="Metabric") {
-#######################################################################
-  
-  var <- "IC10"
-  data <- anno %>% filter(!is.na(IC10))
-  table(anno$PAM50,is.na(anno$IC10))
-  
-  # matrix
-  var.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 9))
-  names(var.df) <- col.names
-  var.df$Variable <- c("IC-1","IC-2","IC-3","IC-4ER+","IC-6","IC-7","IC-8","IC-9","IC-10") # no ic5 classification, add later in table
-  
-  # for Her2 vs LumA
-  luma.ct <- table(data$PAM50,data[[var]])[c("Her2","LumA"),]
-    
-  # for Her2 vs LumB
-  lumb.ct <- table(data$PAM50,data[[var]])[c("Her2","LumB"),]
-  
-  groups <- c("Her2","LumA","LumB")
-  cols <- c("HER2E","LUMA","LUMB")
-  
-  for (i in 1:3) {
-    type <- groups[i]
-    col <- cols[i]
-    type.dat <- data[which(data$PAM50==type),]
-    type.dat$PAM50 <- droplevels(type.dat$PAM50)
-    type.counts <- table(type.dat$PAM50,type.dat[[var]])
-    
-    # count column
-    for (j in 1:length(unique(data$IC10))) {
-      if (col=="HER2E") {
-        var.df[[paste(col,"(ref)",sep="")]][j] <- type.counts[j]
-      } else {
-        var.df[[col]][j] <- type.counts[j]
-      }
-    
-      # % column
-      var.df[[paste(col,".%",sep="")]][j] <- round(type.counts[j]/sum(type.counts)*100)
-      var.df[[paste(col,".%",sep="")]][j] <- round(type.counts[j]/sum(type.counts)*100)
-      var.df[[paste(col,".%",sep="")]][j] <- round(type.counts[j]/sum(type.counts)*100)
-    }
-  }
-  
-  ic10.df <- var.df
-  
-  # create grouped barplot
-  dat <- as.data.frame(table(anno$PAM50,anno$IC10)) %>% 
-    mutate(Freq=case_when(Var1=="Her2" ~ (Freq/table(anno$PAM50)[["Her2"]])*100,
-                          Var1=="LumA" ~ (Freq/table(anno$PAM50)[["LumA"]])*100,
-                          Var1=="LumB" ~ (Freq/table(anno$PAM50)[["LumB"]])*100))
-  
-  # Create grouped barplot using ggplot2
-  ic10.plot <- ggplot(dat,aes(x = Var2, y =Freq, fill = Var1)) +
-    geom_bar(stat = "identity", color="black",width=0.7, position = "dodge") +
-    scale_fill_manual(name = "PAM50 Subtype",values=c("#d334eb", "#2176d5","#34c6eb")) +
-    xlab("IC10 Subtype") +
-    ylab("Fraction (%)")
-  
-  #######################################################################
-  # HER2low frequency (2x2 contingency table)
-  #######################################################################
-  
-  h2low.data <- anno %>% filter(!is.na(HER2_Low))
-  table(anno$PAM50,anno$HER2_Low)
-  
-  # matrix
-  h2low.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-  names(h2low.df) <- col.names
-  h2low.df$Variable <- c("HER2low.No","HER2low.Yes")
-  
-  h2low.df <- test.2x2ct(data = h2low.data,
-                         var.df = h2low.df,
-                         var = "HER2_Low")
-  
-  
-  h2low.df
-}
+# add count data
+pam50.count.rs1$`Basal(ref)`[1] <- unname(t["Basal"])
+pam50.count.rs1$LumA[1] <- unname(t["LumA"])
+pam50.count.rs1$LumB[1] <- unname(t["LumB"])
+
+# add % data
+pam50.count.rs1$`Basal.%`[1] <- round((unname(t["Basal"])/sum(t))*100,2)
+pam50.count.rs1$`LumA.%`[1] <- round((unname(t["LumA"])/sum(t))*100,2)
+pam50.count.rs1$`LumB.%`[1] <- round((unname(t["LumB"])/sum(t))*100,2)
+
+pam50.count.rs1
 
 #######################################################################
-# only for SCANB
-if (cohort=="SCANB") {
-  #######################################################################
-  # 4. PR status (2x2 contingency table)
-  #######################################################################
-  
-  pr.data <- anno %>% filter(!is.na(PR))
-  
-  # matrix
-  pr.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-  names(pr.df) <- col.names
-  pr.df$Variable <- c("PR.neg","PR.pos")
-  
-  pr.df <- test.2x2ct(data = pr.data,
-                      var.df = pr.df,
-                      var = "PR")
-  pr.df
-  
-  
-  ########################################################################
-  # 2. review data vars
-  
-  #######################################################################
-  # % reviewed 
-  #######################################################################
-  
-  # matrix
-  rev.count <- as.data.frame(matrix(ncol=length(col.names)))
-  names(rev.count) <- col.names
-  rev.count$Variable <- "N.Reviewed"
-  
-  t.rev <- table(anno[which(anno$Bosch_RS1==1),]$PAM50)
-  t.all <- table(anno$PAM50)
-  
-  # add count data
-  rev.count$`HER2E(ref)`[1] <- t.rev[1]
-  rev.count$LUMA[1] <- t.rev[2]
-  rev.count$LUMB[1] <- t.rev[3]
-  
-  # add % data
-  rev.count$`HER2E.%`[1] <- (t.rev[1]/t.all[1])*100
-  rev.count$`LUMA.%`[1] <- (t.rev[2]/t.all[2])*100
-  rev.count$`LUMB.%`[1] <- (t.rev[3]/t.all[3])*100
-  
-  rev.count
-  
-  #######################################################################
-  # filter anno to only include review data
-  anno <- anno %>% filter(Bosch_RS1 == 1)
-  
-  #######################################################################
-  # HER2low frequency (2x2 contingency table)
-  #######################################################################
-  
-  h2low.data <- anno %>% filter(!is.na(HER2_Low))
-  table(anno$PAM50,anno$HER2_Low)
-  
-  # matrix
-  h2low.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-  names(h2low.df) <- col.names
-  h2low.df$Variable <- c("HER2low.No","HER2low.Yes")
-  
-  h2low.df <- test.2x2ct(data = h2low.data,
-                         var.df = h2low.df,
-                         var = "HER2_Low")
-  
-  
-  h2low.df
-  
-  #######################################################################
-  # PAM50 count in review
-  #######################################################################
-  
-  # matrix
-  pam50.count.rev <- as.data.frame(matrix(ncol=length(col.names)))
-  names(pam50.count.rev) <- col.names
-  pam50.count.rev$Variable <- "N.Bosch"
-  
-  t <- table(anno$PAM50)
-  
-  # add count data
-  pam50.count.rev$`HER2E(ref)`[1] <- t[1]
-  pam50.count.rev$LUMA[1] <- t[2]
-  pam50.count.rev$LUMB[1] <- t[3]
-  
-  # add % data
-  pam50.count.rev$`HER2E.%`[1] <- (t[1]/length(anno$PAM50))*100
-  pam50.count.rev$`LUMA.%`[1] <- (t[2]/length(anno$PAM50))*100
-  pam50.count.rev$`LUMB.%`[1] <- (t[3]/length(anno$PAM50))*100
-  
-  pam50.count.rev
-  
-  #######################################################################
-  # LN Bosch
-  #######################################################################
-  
-  ln_bosch.data <- anno %>% filter(!is.na(LN_Bosch))
-  table(anno$PAM50,anno$LN_Bosch)
-  
-  # matrix
-  ln_bosch.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-  names(ln_bosch.df) <- col.names
-  ln_bosch.df$Variable <- c("LN.N0.Bosch","LN.N+.Bosch")
-  
-  ln_bosch.df <- test.2x2ct(data = ln_bosch.data,
-                            var.df = ln_bosch.df,
-                            var = "LN_Bosch")
-  
-  ln_bosch.df
-  
-  #######################################################################
-  # Size Bosch x.data .df VAR
-  #######################################################################
-  
-  size_bosch.data <- anno %>% filter(!is.na(Size_Bosch))
-  table(anno$PAM50,is.na(anno$Size_Bosch))
-  
-  # matrix
-  size_bosch.df <- as.data.frame(matrix(ncol=length(col.names)))
-  names(size_bosch.df) <- col.names
-  size_bosch.df$Variable <- "Size.Bosch"
-  
-  size_bosch.df <- test.cont(data = size_bosch.data,
-                             var.df = size_bosch.df,
-                             var = "Size_Bosch")
-  
-  size_bosch.df
-  
-  #######################################################################
-  # NHG Bosch
-  #######################################################################
-  
-  nhg_bosch.data <- anno %>% filter(!is.na(NHG_Bosch))
-  table(anno$PAM50,is.na(anno$NHG_Bosch))
-  
-  # matrix
-  nhg_bosch.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 3))
-  names(nhg_bosch.df) <- col.names
-  nhg_bosch.df$Variable <- c("NHG1.Bosch","NHG2.Bosch","NHG3.Bosch")
-  
-  nhg_bosch.df <-   test.2x3ct(data = nhg_bosch.data,
-                         var.df = nhg_bosch.df,
-                         var = "NHG_Bosch")
-  
-  nhg_bosch.df
-  
-  #######################################################################
-  # Age for review
-  #######################################################################
-  
-  age_bosch.data <- anno %>% filter(!is.na(Age))
-  table(anno$PAM50,is.na(anno$Age))
-  
-  # matrix
-  age_bosch.df <- as.data.frame(matrix(ncol=length(col.names)))
-  names(age_bosch.df) <- col.names
-  age_bosch.df$Variable <- "Age"
-  
-  age_bosch.df <- test.cont(data = age_bosch.data,
-                      var.df = age_bosch.df,
-                      var = "Age")
-  
-  age_bosch.df
-  
-  #######################################################################
-  # PR for review
-  #######################################################################
-  
-  pr_bosch.data <- anno %>% filter(!is.na(PR))
-  
-  # matrix
-  pr_bosch.df <- as.data.frame(matrix(ncol=length(col.names),nrow = 2))
-  names(pr_bosch.df) <- col.names
-  pr_bosch.df$Variable <- c("PR.neg","PR.pos")
-  
-  pr_bosch.df <- test.2x2ct(data = pr_bosch.data,
-                      var.df = pr_bosch.df,
-                      var = "PR")
-  pr_bosch.df
-  
-  #######################################################################
-  # export to excel
-  #######################################################################
-    
-  # rel4+part of rs1
-  sheet.list.table1 <- list("N" = pam50.count, 
-                           "Age" = age.df,
-                           "PR" = pr.df,
-                           "Size" = size.df,
-                           "NHG" = nhg.df,
-                           "LN" = ln.df,
-                           "%reviewed" = rev.count,
-                           "HER2low" = h2low.df)
-  
-  # rbind
-  table1 <- as.data.frame(do.call("rbind", sheet.list.table1)) %>% mutate_at(vars(colnames(.)[colnames(.) %!in% c("Variable","LUMA.pval","LUMB.pval")]), function(x) {round(x,1)})
-  
-  write_xlsx(table1,"./output/supplementary_data/SCANB_clinpath_table1.xlsx")
-  
-  # review
-  sheet.list.table2 <- list("N" = pam50.count.rev, 
-                            "Age" = age_bosch.df,
-                            "PR" = pr_bosch.df,
-                            "Size" = size_bosch.df,
-                            "NHG" = nhg_bosch.df,
-                            "LN" = ln_bosch.df,
-                            "HER2low" = h2low.df)
-  
-  # rbind
-  table2 <- as.data.frame(do.call("rbind", sheet.list.table2)) %>% mutate_at(vars(colnames(.)[colnames(.) %!in% c("Variable","LUMA.pval","LUMB.pval")]), function(x) {round(x,1)})
-  
-  write_xlsx(table2,"./output/supplementary_data/SCANB_clinpath_review_table2.xlsx")
-  
-} else if (cohort=="Metabric") {
-  # 1 table
-  sheet.list.table1 <- list("N" = pam50.count, 
-                            "Age" = age.df,
-                            "Size" = size.df,
-                            "NHG" = nhg.df,
-                            "LN" = ln.df,
-                            "HER2low" = h2low.df,
-                            "IC10" = ic10.df) 
-  
-  # rbind
-  table1 <- as.data.frame(do.call("rbind", sheet.list.table1)) %>% mutate_at(vars(colnames(.)[colnames(.) %!in% c("Variable","LUMA.pval","LUMB.pval")]), function(x) {round(x,1)})
-  
-  write_xlsx(table1,"./output/supplementary_data/Metabric_clinpath_table1.xlsx")
-  
-  # save plot
-  pdf(file = paste(output.path,"Metabric_IC10_barplot.pdf",sep=""), 
-      width = 21/2, height = 14.8/2) 
-  print(ic10.plot)
-  dev.off()
-}
+# LN Bosch
+#######################################################################
 
+ln.data <- anno %>% filter(!is.na(LN_Bosch)) %>% 
+  dplyr::select(PAM50,LN_Bosch)
+#table(anno$PAM50,is.na(anno$LN_Bosch))
 
-"./output/supplementary_data/SCANB_clinpath_table1.xlsx"
-"./output/supplementary_data/SCANB_clinpath_review_table2.xlsx"
+ct <- table(ln.data$PAM50,ln.data$LN_Bosch)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nLN.RS1\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("LN.N0.RS1","LN.N+.RS1")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+ln.df.rs1 <- as.data.frame(cbind(variable,
+                             basal.counts,basal.perc,
+                             luma.counts,luma.perc,
+                             lumb.counts,lumb.perc))
+
+names(ln.df.rs1) <- col.names
+ln.df.rs1
+
+#######################################################################
+# Size Bosch 
+#######################################################################
+
+size.data <- anno %>% 
+  filter(!is.na(Size_Bosch)) %>% 
+  dplyr::select(PAM50,Size_Bosch)
+
+#table(anno$PAM50,is.na(anno$Size_Bosch))
+
+# matrix
+size.df.rs1 <- as.data.frame(matrix(ncol=length(col.names)))
+names(size.df.rs1) <- col.names
+size.df.rs1$Variable <- "Size.RS1"
+
+res.luma <- wilcox.test(size.data[Basal.ids,"Size_Bosch"],
+                        size.data[LumA.ids,"Size_Bosch"])
+res.lumb <- wilcox.test(size.data[Basal.ids,"Size_Bosch"],
+                        size.data[LumB.ids,"Size_Bosch"])
+
+txt.out <- append(txt.out, c("\nSize.RS1\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+means <- tapply(size.data$Size_Bosch, size.data$PAM50, mean)
+sds <- tapply(size.data$Size_Bosch, size.data$PAM50, sd)
+
+size.df.rs1$`Basal(ref)` <- unname(means["Basal"])
+size.df.rs1$LumA <- unname(means["LumA"])
+size.df.rs1$LumB <- unname(means["LumB"])
+
+size.df.rs1$`Basal.%` <- unname(sds["Basal"])
+size.df.rs1$`LumA.%` <- unname(sds["LumA"])
+size.df.rs1$`LumB.%` <- unname(sds["LumB"])
+size.df.rs1
+
+#######################################################################
+# NHG Bosch
+#######################################################################
+
+nhg.data <- anno %>% filter(!is.na(NHG_Bosch)) %>% 
+  dplyr::select(PAM50,NHG_Bosch)
+#table(anno$PAM50,is.na(anno$NHG_Bosch))
+
+ct <- table(nhg.data$PAM50,nhg.data$NHG_Bosch)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nNHG.RS1\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("NHG1.RS1","NHG2.RS1","NHG3.RS1")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+nhg.df.rs1 <- as.data.frame(cbind(variable,
+                              basal.counts,basal.perc,
+                              luma.counts,luma.perc,
+                              lumb.counts,lumb.perc))
+
+names(nhg.df.rs1) <- col.names
+
+nhg.df.rs1
+
+#######################################################################
+# Age for review
+#######################################################################
+
+age.data <- anno %>% 
+  filter(!is.na(Age)) %>% 
+  dplyr::select(PAM50,Age)
+
+#table(anno$PAM50,is.na(anno$Age))
+
+# matrix
+age.df.rs1 <- as.data.frame(matrix(ncol=length(col.names)))
+names(age.df.rs1) <- col.names
+age.df.rs1$Variable <- "Age.RS1"
+
+res.luma <- wilcox.test(age.data[Basal.ids,"Age"],age.data[LumA.ids,"Age"])
+res.lumb <- wilcox.test(age.data[Basal.ids,"Age"],age.data[LumB.ids,"Age"])
+
+txt.out <- append(txt.out, c("\nAge.RS1\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+means <- tapply(age.data$Age, age.data$PAM50, mean)
+sds <- tapply(age.data$Age, age.data$PAM50, sd)
+
+age.df.rs1$`Basal(ref)` <- unname(means["Basal"])
+age.df.rs1$LumA <- unname(means["LumA"])
+age.df.rs1$LumB <- unname(means["LumB"])
+
+age.df.rs1$`Basal.%` <- unname(sds["Basal"])
+age.df.rs1$`LumA.%` <- unname(sds["LumA"])
+age.df.rs1$`LumB.%` <- unname(sds["LumB"])
+
+age.df.rs1
+
+#######################################################################
+# PR for review
+#######################################################################
+
+pr.data <- anno %>% filter(!is.na(PR)) %>% 
+  dplyr::select(PAM50,PR)
+
+ct <- table(pr.data$PAM50,pr.data$PR)
+res.luma <- fisher.test(ct[c("Basal","LumA"),])
+res.lumb <- fisher.test(ct[c("Basal","LumB"),])
+
+txt.out <- append(txt.out, c("\nPR.RS1\n",
+                             "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.luma), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(res.lumb), "\n###########################################\n"))
+
+variable <- c("PR.neg.RS1","PR.pos.RS1")
+basal.counts <- unname(ct["Basal",])
+luma.counts <- unname(ct["LumA",])
+lumb.counts <- unname(ct["LumB",])
+basal.perc <- round((basal.counts/sum(ct["Basal",]))*100,2)
+luma.perc <- round((luma.counts/sum(ct["LumA",]))*100,2)
+lumb.perc <- round((lumb.counts/sum(ct["LumB",]))*100,2)
+
+pr.df.rs1 <- as.data.frame(cbind(variable,
+                             basal.counts,basal.perc,
+                             luma.counts,luma.perc,
+                             lumb.counts,lumb.perc))
+
+names(pr.df.rs1) <- col.names
+pr.df.rs1
+
+#######################################################################
+# save output
+#######################################################################
+  
+# rel4+part of rs1
+sheet.list.table1 <- list("N" = pam50.count, 
+                         "Age" = age.df,
+                         "PR" = pr.df,
+                         "Size" = size.df,
+                         "NHG" = nhg.df,
+                         "LN" = ln.df,
+                         "%reviewed" = rev.count,
+                         "HER2low" = h2low.df)
+
+# rbind
+table1 <- as.data.frame(do.call("rbind", sheet.list.table1))
+
+write_xlsx(table1, outfile.1)
+
+# review
+sheet.list.table2 <- list("N" = pam50.count.rs1, 
+                          "Age" = age.df.rs1,
+                          "PR" = pr.df.rs1,
+                          "Size" = size.df.rs1,
+                          "NHG" = nhg.df.rs1,
+                          "LN" = ln.df.rs1,
+                          "HER2low" = h2low.df)
+
+# rbind
+table2 <- as.data.frame(do.call("rbind", sheet.list.table2))
+
+write_xlsx(table2, outfile.2)
+
+# save text
+writeLines(txt.out, txt.file)
