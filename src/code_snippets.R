@@ -114,3 +114,75 @@ openxlsx::addWorksheet(wb=wb, sheetName="GSEA.HER2E.core.set")
 openxlsx::writeDataTable(wb=wb,sheet="GSEA.HER2E.core.set",x=GSEA.HER2E.core.set)
 openxlsx::saveWorkbook(wb=wb,file="./output/supplementary_data/Manuscript_files/Table_S2.xlsx",
                        overwrite=TRUE)
+
+################################################################################
+# save ggplots on one page
+# save as one page
+grob.list <- lapply(plot.list, function(x) {
+  p <- ggplotGrob(x)
+  return(p)
+})
+combined.plot <- arrangeGrob(grobs = grob.list, ncol = 2)
+ggsave(plot.file.2, combined.plot, 
+       width = 21, height = 29.7, units = "cm")
+
+################################################################################
+# save n plots per page
+
+# Create a list of ggplotGrob objects
+grob_list <- lapply(plot.list, function(x) {
+  p <- ggplotGrob(x)
+  return(p)
+})
+
+# Set the maximum number of plots per page and orientation
+plots_per_page <- 6
+ncol <- 2
+nrow <- 3
+
+# Calculate the number of pages needed
+num_pages <- ceiling(length(grob_list) / plots_per_page)
+
+# Create a multi-page PDF
+pdf(plot.file.2, width = 8.27, height = 11.69)
+
+# Loop through pages and save each page
+for (page in 1:num_pages) {
+  start_index <- (page - 1) * plots_per_page + 1
+  end_index <- min(page * plots_per_page, length(grob_list))
+  
+  grob_list_page <- grob_list[start_index:end_index]
+  
+  # Arrange the ggplotGrob objects in a grid for each page
+  grid_arranged_page <- grid.arrange(grobs = grob_list_page, 
+                                     ncol = ncol, nrow = nrow)
+  
+  # Print the arranged grob to the current PDF page
+  print(grid_arranged_page)
+}
+
+# Close the PDF device
+dev.off()
+
+################################################################################
+################################################################################
+# remove duplicates 
+
+gex <- gex[!duplicated(gex$Hgnc_ID), ] # keep 1st row of each symbol
+
+
+
+# convet gene symbols
+library(biomaRt)
+
+ensemble_to_hgnc <- function(ensemble.ids) {
+  # Connect to the Ensembl database
+  mart <- useDataset("hsapiens_gene_ensembl", useMart("ensembl"))
+  # Retrieve Hugo gene names using biomaRt
+  res <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol"),
+               filters = "ensembl_gene_id",
+               values = ensemble.ids,
+               mart = mart,
+               uniqueRows = TRUE)
+  return(res)
+}
