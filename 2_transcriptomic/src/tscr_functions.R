@@ -26,3 +26,4 @@ get_stats <- function(vec) {
   sd <- sd(vec)
   return(c("mean"=mean, "median"=median, "sd"=sd))
 }
+
