@@ -74,35 +74,26 @@ mg.scores <- apply(gex.df, 2, function(x) {
 })
 
 rownames(mg.scores) <- metagenes
+mg.scores <- as.data.frame(mg.scores)
 
 #######################################################################
 # test and plot
 #######################################################################
 
-
-
-
-
-#######################################################################
-# analyses
-#######################################################################
-
-gene.vec <- c("ERBB2","ESR1","FGFR4","TSPAN6","TNMD","DPM1","SCYL3","C1orf112","FGR")
-
-for (gene in gene.vec) {
+for (metagene in metagenes) {
   
-  txt.out <- append(txt.out, c("\n",gene,"\n",
+  txt.out <- append(txt.out, c("\n",metagene,"\n",
                                "\n###########################################\n"))
   
-  gene.gex <- gex.df[gene,] # misses pam 50 anno col
+  metagene.gex <- mg.scores[metagene,] 
   
   # subtype data
   basal.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
+    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
   luma.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
+    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
   lumb.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
+    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
   
   # summary statistics
   basal.stats <- get_stats(basal.dat)
@@ -127,7 +118,7 @@ for (gene in gene.vec) {
                    col = color.palette, 
                    names = names(color.palette),
                    ylab = "mRNA expression (log2)",
-                   main = gene)
+                   main = metagene)
   # boxplot(plot_parameters$data, 
   #         col = plot_parameters$col,
   #         names = plot_parameters$names,
