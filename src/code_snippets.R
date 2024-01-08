@@ -186,3 +186,65 @@ ensemble_to_hgnc <- function(ensemble.ids) {
                uniqueRows = TRUE)
   return(res)
 }
+
+
+
+### base r current plot saving
+
+for(i in 1:3){
+  # plot
+  plot <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
+                col = color.palette, names = names(color.palette),
+                ylab = "mRNA expression (log2)",
+                main=gene)
+  plot <- recordPlot() #records current plot
+  plot.new()
+
+  plot.list <- append(plot.list, list(plot))
+}
+
+# save plots
+pdf(file = plot.file, onefile = TRUE) 
+for (i in 1:length(plot.list)) {
+  print(plot.list[[i]])
+}
+dev.off()
+
+
+
+#### base r saving mutiple plots per page by saving paramters for later plotting
+plot.parameters <- list()
+# plot
+plot.par <- list(
+  data = list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
+  col = color.palette, 
+  names = names(color.palette),
+  ylab = "mRNA expression (log2)",
+  main = gene)
+# boxplot(plot_parameters$data, 
+#         col = plot_parameters$col,
+#         names = plot_parameters$names,
+#         ylab = plot_parameters$ylab,
+#         main = plot_parameters$main)
+# plot <- recordPlot()
+# plot.new()
+plot.parameters <- append(plot.parameters, list(plot.par))
+#plot.list <- append(plot.list, list(plot))
+
+
+
+# save plots
+pdf(file = plot.file, onefile = TRUE) 
+par(mfrow = c(2, 2))
+for (i in 1:length(plot.parameters)) {
+  boxplot(plot.parameters[[i]]$data,
+          col = plot.parameters[[i]]$col,
+          names = plot.parameters[[i]]$names,
+          ylab = plot.parameters[[i]]$ylab,
+          main = plot.parameters[[i]]$main)
+}
+par(mfrow = c(1, 1))
+dev.off()
+
+# save text
+writeLines(txt.out, txt.file)

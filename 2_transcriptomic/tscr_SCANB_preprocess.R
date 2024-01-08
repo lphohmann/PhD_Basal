@@ -30,14 +30,11 @@ data.path <- "./data/SCANB/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData" 
 infile.3 <- "./data/SCANB/2_transcriptomic/raw/genematrix_noNeg.Rdata" 
 
 # output paths
-#plot.file <- paste0(output.path,cohort,"_x.pdf")
-#txt.file <- paste0(output.path,cohort,"_x.txt")
-outfile.1 <- paste0(data.path,".RData") #gex
+outfile.1 <- paste0(data.path,"ERp_LogScaled_gex.RData") # scaled gex
 #-------------------
 # storing objects 
 #plot.list <- list() # object to store plots
@@ -67,11 +64,18 @@ rownames(gex) <- gex$Hgnc_ID
 gex$Hgnc_ID <- NULL
 gex$Ensemble_ID <- NULL
 
-gex.data <- scanb_gex_load(gex.path = "data/SCANB/2_transcriptomic/raw/genematrix_noNeg.Rdata", geneanno.path = "data/SCANB/1_clinical/raw/Gene.ID.ann.Rdata", ID.type = "Gene.Name") %>%
-  dplyr::select(any_of(anno$sampleID)) %>% # select subgroup gex
-  select_if(~ !any(is.na(.))) # otherwise error when scaling 
+#######################################################################
+# log-transform and scale
+#######################################################################
 
 # log transform FPKM data
-gex.data <- as.data.frame(log2(gex.data + 1))
+gex <- as.data.frame(log2(gex + 1))
 # z-transform
-gex.data <- as.data.frame(t(apply(gex.data, 1, function(y) (y - mean(y)) / sd(y) ^ as.logical(sd(y))))) # for some rows there may be 0 variance so i have to handle these cases
+gex <- as.data.frame(t(apply(
+  gex, 1, function(y) (y - mean(y)) / sd(y) ^ as.logical(sd(y))))) # for some rows there may be 0 variance so i have to handle these cases
+
+#######################################################################
+# save
+#######################################################################
+
+save(gex,file=outfile.1)

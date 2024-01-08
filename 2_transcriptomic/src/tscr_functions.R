@@ -18,3 +18,11 @@ ensemble_to_hgnc <- function(ensemble.ids) {
                uniqueRows = TRUE)
   return(res)
 }
+
+
+get_stats <- function(vec) {
+  mean <- mean(vec)
+  median <- median(vec)
+  sd <- sd(vec)
+  return(c("mean"=mean, "median"=median, "sd"=sd))
+}
