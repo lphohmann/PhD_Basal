@@ -1,6 +1,6 @@
-# Script: Plotting and testing expression of metagenes in SCAN-B
+# Script: Plotting expression of metagenes in SCAN-B with all PAM50 subtypes
 # Author: Lennart Hohmann
-# Date: 08.01.2024
+# Date: 15.01.2024
 #-------------------
 # empty environment 
 rm(list=ls())
@@ -31,8 +31,8 @@ infile.2 <- "./data/Parameters/color_palette.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/raw/metagene_definitions.XLSX"
 # output paths
-plot.file <- paste0(output.path,cohort,"_metagenes.pdf")
-txt.file <- paste0(output.path,cohort,"_metagenes.txt")
+plot.file <- paste0(output.path,cohort,"_metagenes_allPAM50.pdf")
+txt.file <- paste0(output.path,cohort,"_metagenes_allPAM50.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -48,10 +48,10 @@ metagene.def <- as.data.frame(read_excel(infile.4))
 colnames(metagene.def) <- c("Module","Gene","Entrez_ID")
 
 # load sampleIDs
-sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+sampleIDs <- loadRData(infile.1)
 
 # load palette
-color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
+color.palette <- loadRData(infile.2)
 
 # load gex
 gex.df <- loadRData(infile.3)
@@ -77,7 +77,7 @@ rownames(mg.scores) <- metagenes
 mg.scores <- as.data.frame(mg.scores)
 
 #######################################################################
-# test and plot
+# plot and test
 #######################################################################
 
 for (metagene in metagenes) {
@@ -94,31 +94,37 @@ for (metagene in metagenes) {
     metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
   lumb.dat <- as.numeric(as.vector(
     metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
+  her2e.dat <- as.numeric(as.vector(
+    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_HER2E"]))]))
   
   # summary statistics
   basal.stats <- get_stats(basal.dat)
   luma.stats <- get_stats(luma.dat)
   lumb.stats <- get_stats(lumb.dat)
+  her2e.stats <- get_stats(her2e.dat)
   
   txt.out <- append(txt.out, c("Basal\n",capture.output(basal.stats), "\n",
                                "LumA\n",capture.output(luma.stats), "\n",
-                               "LumB\n",capture.output(lumb.stats),
+                               "LumB\n",capture.output(lumb.stats), "\n",
+                               "HER2E\n",capture.output(her2e.stats),
                                "\n###########################################\n"))
   
   # mann whitney u tests
   luma.res <- wilcox.test(basal.dat, luma.dat)
   lumb.res <- wilcox.test(basal.dat, lumb.dat)
+  her2e.res <- wilcox.test(her2e.dat, lumb.dat)
   
   txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
   txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(her2e.res), "\n###########################################\n"))
   
   # plot
   plot.par <- list(
-                   data = list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
-                   col = color.palette, 
-                   names = names(color.palette),
-                   ylab = "mRNA expression (log2)",
-                   main = metagene)
+    data = list(Her2=her2e.dat,LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
+    col = color.palette, 
+    names = names(color.palette),
+    ylab = "mRNA expression (log2)",
+    main = metagene)
   # boxplot(plot_parameters$data, 
   #         col = plot_parameters$col,
   #         names = plot_parameters$names,
@@ -139,8 +145,9 @@ for (i in 1:length(plot.parameters)) {
           col = plot.parameters[[i]]$col,
           names = plot.parameters[[i]]$names,
           ylab = plot.parameters[[i]]$ylab,
-          main = plot.parameters[[i]]$main)
+          main = "")
   axis(3,at=1:length(bp$n),labels=bp$n)
+  mtext(plot.parameters[[i]]$main, side = 3, line = 2.2, cex = 1)
 }
 par(mfrow = c(1, 1))
 dev.off()

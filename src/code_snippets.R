@@ -213,6 +213,8 @@ dev.off()
 
 
 #### base r saving mutiple plots per page by saving paramters for later plotting
+
+## IMPORTANT: the list with data has to be in same order as color palette names!
 plot.parameters <- list()
 # plot
 plot.par <- list(
@@ -237,11 +239,12 @@ plot.parameters <- append(plot.parameters, list(plot.par))
 pdf(file = plot.file, onefile = TRUE) 
 par(mfrow = c(2, 2))
 for (i in 1:length(plot.parameters)) {
-  boxplot(plot.parameters[[i]]$data,
+  bp <- boxplot(plot.parameters[[i]]$data,
           col = plot.parameters[[i]]$col,
           names = plot.parameters[[i]]$names,
           ylab = plot.parameters[[i]]$ylab,
           main = plot.parameters[[i]]$main)
+  axis(3,at=1:length(bp$n),labels=bp$n)
 }
 par(mfrow = c(1, 1))
 dev.off()

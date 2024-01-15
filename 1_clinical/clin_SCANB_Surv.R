@@ -9,7 +9,7 @@ setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
 cohort <- "SCANB"
 # plot also HER2E?
-plot.HER2E <- "yes" #no
+plot.HER2E <- "no" #no
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
@@ -307,7 +307,7 @@ plot <- ggsurvplot(EC.fit,
                    ylab = paste0(OM," probability"),
                    ylim = c(0,1),
                    title = plot.title,
-                   legend = c(0.9,0.96),
+                   legend = c(0.9,0.3),
                    legend.title = "Subtypes",
                    palette = color.palette)[["plot"]]
 
@@ -449,7 +449,7 @@ plot <- ggsurvplot(EC.fit,
                    ylab = paste0(OM," probability"),
                    ylim = c(0,1),
                    title = plot.title,
-                   legend = c(0.9,0.96),
+                   legend = c(0.9,0.3),
                    legend.title = "Subtypes",
                    palette = color.palette)[["plot"]]
 
@@ -514,7 +514,7 @@ plot <- ggsurvplot(E.fit,
                    ylab = paste0(OM," probability"),
                    ylim = c(0,1),
                    title = plot.title,
-                   legend = c(0.9,0.96),
+                   legend = c(0.9,0.3),
                    legend.title = "Subtypes",
                    palette = color.palette)[["plot"]]
 
