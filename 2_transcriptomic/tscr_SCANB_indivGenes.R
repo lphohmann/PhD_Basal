@@ -55,14 +55,15 @@ gex.df <- gex.df[, unname(unlist(sampleIDs))]
 # analyses
 #######################################################################
 
-gene.vec <- c("ERBB2","ESR1","FGFR4","TSPAN6","TNMD","DPM1","SCYL3","C1orf112","FGR")
+gene.vec <- c("ERBB2","ESR1","EGFR","ACTR3B", "ANLN", "BAG1", "BCL2", "BIRC5", "BLVRA", "CCNB1", "CCNE1", "CDC20", "CDC6", "CDH3", "CENPF", "CEP55", "CXXC5", "EXO1", "FGFR4", "FOXA1", "FOXC1", "GPR160", "GRB7", "KIF2C", "KRT14", "KRT17", "KRT5", "MAPT", "MDM2", "MELK", "MIA", "MKI67", "MLPH", "MMP11", "MYBL2", "MYC", "NAT1", "NDC80", "NUF2", "PGR", "PHGDH", "PTTG1", "RRM2", "SFRP1", "SLC39A6", "TMEM45B", "TYMS", "UBE2C", "UBE2T") #,"ORC6L"
+#setdiff(gene.vec, rownames(gex.df))
 
 for (gene in gene.vec) {
   
   txt.out <- append(txt.out, c("\n",gene,"\n",
                                "\n###########################################\n"))
   
-  gene.gex <- gex.df[gene,] # misses pam 50 anno col
+  gene.gex <- gex.df[gene,] 
   
   # subtype data
   basal.dat <- as.numeric(as.vector(
@@ -112,11 +113,12 @@ for (gene in gene.vec) {
 pdf(file = plot.file, onefile = TRUE) 
 par(mfrow = c(2, 2))
 for (i in 1:length(plot.parameters)) {
-  boxplot(plot.parameters[[i]]$data,
+  bp <- boxplot(plot.parameters[[i]]$data,
           col = plot.parameters[[i]]$col,
           names = plot.parameters[[i]]$names,
           ylab = plot.parameters[[i]]$ylab,
           main = plot.parameters[[i]]$main)
+  axis(3,at=1:length(bp$n),labels=bp$n)
 }
 par(mfrow = c(1, 1))
 dev.off()

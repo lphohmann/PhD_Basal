@@ -61,9 +61,6 @@ if (plot.HER2E == "yes") {
   color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
   }
 
-
-
-
 names(color.palette) <- paste0("PAM50=", names(color.palette))
 
 # review 1 data
