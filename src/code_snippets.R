@@ -248,3 +248,38 @@ dev.off()
 
 # save text
 writeLines(txt.out, txt.file)
+
+
+#######################################################################
+
+# get normal IDs in SCANB
+id.key <- read_excel(
+  "data/SCANB/3_genomic/raw/JVCimpression2022-11-09_ERpos_WGS_Batch1-3.xlsx") %>% 
+  dplyr::select(c(SENT.TUMOR,SENT.TUMOR.aliquot,TUMOR.alias)) %>% 
+  mutate(SENT.TUMOR.aliquot = gsub("\\.","_",SENT.TUMOR.aliquot))
+id.df <- sapply(list(names(kat.scanb)), function(x) {sub("_vs_.*", "", x)}) %>% 
+  as.data.frame() %>% 
+  dplyr::rename(Old.id=1)
+# 1. convert epb IDs to normal sample IDs
+id.df$New.id <- id.key$SENT.TUMOR[match(
+  id.df$Old.id, id.key$SENT.TUMOR.aliquot)] 
+# 2. convert the other IDs to normal sample IDs
+id.df$New.id.2 <- id.key$SENT.TUMOR[match(
+  id.df$Old.id, id.key$TUMOR.alias)] # 2. convert the other IDs to normal sample IDs
+id.df$New.id <- ifelse(is.na(id.df$New.id), id.df$New.id.2, id.df$New.id)
+id.df$New.id.2 <- NULL
+# name
+names(kat.scanb) <- id.df$New.id
+
+# get normal IDs in BASIS
+names(kat.basis) <- sapply(list(names(kat.basis)), 
+                           function(x) {sub("PD(.*?)[A-Za-z].*", "PD\\1", x)})
+
+#######################################################################
+
+# modify package functions
+
+# modify
+trace(ggforest, edit = TRUE)
+# stop using updated function
+untrace(ggforest)

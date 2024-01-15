@@ -43,3 +43,10 @@ ERpHER2n_referenceYear <- all.samples
 save(ERpHER2n_referenceYear, file = outfile.2)
 
 ################################################################################
+
+
+kat <- loadRData("../Project_HER2E/data/SCANB/4_CN/processed/CN_kat_all_samples.RData")
+df <- as.data.frame(names(kat))
+df$PAM50 <- all.samples[match(df$`names(kat)`,all.samples$Sample),]$NCN.PAM50
+View(df)
+table(is.na(df$PAM50))

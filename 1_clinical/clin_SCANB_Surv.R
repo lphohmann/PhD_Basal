@@ -8,6 +8,8 @@ rm(list=ls())
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
 cohort <- "SCANB"
+# plot also HER2E?
+plot.HER2E <- "yes" #no
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
@@ -20,7 +22,8 @@ pacman::p_load(tidyverse,
                survminer,
                grid,
                gridExtra,
-               ggplotify)
+               ggplotify,
+               remotes)
 #-------------------
 # set/create output directories
 # for plots
@@ -48,11 +51,19 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-# load sampleIDs
-sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+if (plot.HER2E == "yes") {
+  sampleIDs <- loadRData(infile.1)
+  color.palette <- loadRData(infile.2)
+} else { 
+  # load sampleIDs
+  sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+  # load palette
+  color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
+  }
 
-# load palette
-color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
+
+
+
 names(color.palette) <- paste0("PAM50=", names(color.palette))
 
 # review 1 data
@@ -87,7 +98,7 @@ svdata.rel4 <- loadRData(infile.3) %>%
   mutate(Treatment = case_when(TreatGroup=="ChemoEndo" ~ "CE",
                                TreatGroup=="Endo" ~ "E")) %>%
   dplyr::select(c("Sample","Treatment","Age","NCN.PAM50",
-                  "OS","OSbin","Size.mm","NHG","LN")) %>%
+                  "OS","OSbin","DRFI","DRFIbin","Size.mm","NHG","LN")) %>%
   dplyr::rename(
     TumSize = Size.mm,
     PAM50 = NCN.PAM50,
@@ -311,6 +322,149 @@ res <- summary(main.all)
 plot <- ggforest(main.all,
                  data=EC.dat,
                  main=plot.title) + theme_bw()
+
+plot.list <- append(plot.list,list(plot))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
+
+########################################
+# Investigate the Endo treatment group
+########################################
+
+# data, surv object, and fit
+E.dat <- svdata.rel4 %>% 
+  filter(Treatment == "E")
+E.surv <- Surv(E.dat[[OM]], E.dat[[OMbin]])
+E.fit <- survminer::surv_fit(E.surv~PAM50, data=E.dat, 
+                             conf.type="log-log") 
+# label output
+plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; ET; ",OM)
+txt.out <- append(txt.out,
+                  c(plot.title, "\n", 
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: ET"),"\n###########################################\n"))
+# subtype numbers
+txt.out <- append(txt.out,
+                  c(capture.output(table(E.dat$PAM50)),"\n###########################################\n"))
+# add the median OM of censored patients
+median.E <- median(E.dat[which(E.dat[[OMbin]]==0),][[OM]])
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n###########################################\n"))
+
+##########################
+
+# uv cox
+main.pam50 <- coxph(E.surv~PAM50, data=E.dat)
+res <- summary(main.pam50)
+plot <- ggforest(main.pam50,data=E.dat,
+                 main=plot.title) + theme_bw()
+
+plot.list <- append(plot.list,list(plot))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
+
+##########################
+
+# KM plot
+plot <- ggsurvplot(E.fit, 
+                   data = E.dat,
+                   pval = TRUE, conf.int = FALSE,
+                   xlab = paste0(OM," (years)"), 
+                   break.x.by = 1,
+                   break.y.by = 0.1,
+                   ylab = paste0(OM," probability"),
+                   ylim = c(0,1),
+                   title = plot.title,
+                   legend = c(0.9,0.96),
+                   legend.title = "Subtypes",
+                   palette = color.palette)[["plot"]]
+
+plot.list <- append(plot.list,list(plot))
+
+##########################
+
+# mv cox
+main.all <- coxph(E.surv~PAM50+Age+LN+TumSize+Grade, 
+                  data=E.dat) 
+res <- summary(main.all)
+plot <- ggforest(main.all,
+                 data=E.dat,
+                 main=plot.title) + theme_bw()
+
+plot.list <- append(plot.list,list(plot))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
+
+#######################################################################
+#######################################################################
+#######################################################################
+# Part 3: DFRI
+#######################################################################
+
+# - Fig C: DRFI; 2x (KM + uniCox) + 2x FP of mvCox
+
+OM <- "DRFI"
+OMbin <- "DRFIbin"
+
+# sub cohort
+sub.cohort <- "Rel4"
+
+######################################
+# Investigate the EC treatment group #
+######################################
+
+# data, surv object, and fit
+EC.dat <- svdata.rel4 %>% 
+  filter(Treatment == "CE")
+EC.surv <- Surv(EC.dat[[OM]], EC.dat[[OMbin]])
+EC.fit <- survminer::surv_fit(EC.surv~PAM50, data=EC.dat, 
+                              conf.type="log-log") 
+# label output
+plot.title <- paste0("ERpHER2n; ",cohort,"; ",sub.cohort,"; CT+ET; ",OM)
+txt.out <- append(txt.out,
+                  c(plot.title, "\n", 
+                    paste0("Analyses with clinical endpoint: ",OM, " in treatment group: CT+ET"),"\n###########################################\n"))
+# subtype numbers
+txt.out <- append(txt.out,
+                  c(capture.output(table(EC.dat$PAM50)),"\n###########################################\n"))
+# add the median OM of censored patients
+median.EC <- median(EC.dat[which(EC.dat[[OMbin]]==0),][[OM]])
+txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n###########################################\n"))
+
+##########################
+
+# uv cox
+main.pam50 <- coxph(EC.surv~PAM50, data=EC.dat)
+res <- summary(main.pam50)
+plot <- ggforest(main.pam50,data=EC.dat,
+                 main=plot.title) + theme_bw()
+
+plot.list <- append(plot.list,list(plot))
+txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
+
+##########################
+
+# KM plot
+plot <- ggsurvplot(EC.fit, 
+                   data = EC.dat,
+                   pval = TRUE, conf.int = FALSE,
+                   xlab = paste0(OM," (years)"), 
+                   break.x.by = 1,
+                   break.y.by = 0.1,
+                   ylab = paste0(OM," probability"),
+                   ylim = c(0,1),
+                   title = plot.title,
+                   legend = c(0.9,0.96),
+                   legend.title = "Subtypes",
+                   palette = color.palette)[["plot"]]
+
+plot.list <- append(plot.list,list(plot))
+
+##########################
+
+# mv cox
+#exp(confint(main.all)) # the problem is that grade2/3 have infinite CI bounds
+main.all <- coxph(EC.surv~PAM50+Age+LN+TumSize, #+Grade
+                  data=EC.dat) 
+res <- summary(main.all)
+plot <- ggforest(main.all,
+                 data=EC.dat,
+                 main=plot.title)
 
 plot.list <- append(plot.list,list(plot))
 txt.out <- append(txt.out,c(capture.output(res),"\n###########################################\n"))
