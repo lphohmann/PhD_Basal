@@ -90,6 +90,7 @@ length(setdiff(rownames(sigRes.Basal_vs_LumA),rownames(sigRes.Basal_vs_LumB)))
 # CHECK IF THERE ARE ALSO NON-SIGNIFICANT GENES, BECAUSE THE PLOT LOOKS WEIRD
 # WHAT GOES WRONG IN HTE DE ANALYSIS THAT ALL OF THEM ARE SIGNIFICANT
 hist(res$table$PValue,breaks=100)
+
 # Basal_vs_LumA
 volcanoPlot.Basal_vs_LumA <- ggplot(res$table,
                                     aes(x = logFC.Basal_vs_LumA, y = -log10(get(padj_method)),
@@ -116,19 +117,20 @@ plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumA))
 
 # Basal_vs_LumB
 volcanoPlot.Basal_vs_LumB <- ggplot(res$table,
-                                    aes(x = logFC.Basal_vs_LumB, y = -log10(FDR),
-                                        color = ifelse(FDR < 0.05 & 
-                                                         abs(logFC.Basal_vs_LumB) > 1,
+                                    aes(x = logFC.Basal_vs_LumB, y = -log10(get(padj_method)),
+                                        color = ifelse(get(padj_method) < 0.05 & 
+                                                         abs(logFC.Basal_vs_LumB) > FC_cutoff,
                                                        "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
   ylab(expression("Adjusted P value, Log"[10]*"")) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dotted", linewidth = 1) +
+  ylim(c(-100, 400)) +
+  geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
   scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumB, y = -log10(FDR), 
+  geom_text_repel(aes(x = logFC.Basal_vs_LumB, y = -log10(get(padj_method)), 
                       label = rownames(res$table[order(
                         -abs(res$table$logFC.Basal_vs_LumB)), ][1:10,]),
                       size = 2, color = "steelblue"),
