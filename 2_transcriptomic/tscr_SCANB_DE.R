@@ -35,32 +35,32 @@ dir.create(data.path)
 #-------------------
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/Parameters/color_palette.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
+infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
+infile.3 <- "./data/SCANB/2_transcriptomic/raw/gene_count_matrix-4.3.csv"
 # output paths
 outfile.1 <- paste0(data.path,"DE_result.RData")
-plot.file <- paste0(output.path,cohort,"_DE.pdf")
-txt.file <- paste0(output.path,cohort,"_DE.txt")
+#plot.file <- paste0(output.path,cohort,"_DE.pdf")
+#txt.file <- paste0(output.path,cohort,"_DE.txt")
 #-------------------
 # storing objects 
-plot.list <- list() # object to store plots
-plot.parameters <- list() # object to store parameters to plot base R plots again later
-txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
+#plot.list <- list() # object to store plots
+#plot.parameters <- list() # object to store parameters to plot base R plots again later
+#txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
 
 #######################################################################
 # load data
 #######################################################################
 
 # sample ids
-sampleIDs <- loadRData("./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData")[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
 
 # annotation
-anno <- loadRData("./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData")
+anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
 anno <- anno[anno$Sample %in% unname(unlist(sampleIDs)),]
 
 # count data
-count.dat <- read.csv("./data/SCANB/2_transcriptomic/raw/gene_count_matrix-4.3.csv")
+count.dat <- read.csv(infile.3)
 count.dat <- count.dat[,c("gene_id",intersect(anno$GEX.assay, colnames(count.dat)))]
 
 # correct gene and sampleIDs
@@ -82,6 +82,9 @@ countTable <- count.dat
 # sampleTable: sampleID PAM50 columns
 sampleTable <- anno[c("Sample","NCN.PAM50")]
 sampleTable$NCN.PAM50 <- as.factor(sampleTable$NCN.PAM50)
+# critical that count matrix sample data are in the same order and format
+countTable <- countTable[, sampleTable$Sample]
+identical(colnames(countTable),sampleTable$Sample) # TRUE
 
 #######################################################################
 # Filter low counts
@@ -90,47 +93,53 @@ sampleTable$NCN.PAM50 <- as.factor(sampleTable$NCN.PAM50)
 # calc. mean log2 counts per million (CPM) for gene 
 # cpm() normalizes for different sequencing depths to make samples comparable
 meanLog2CPM <- rowMeans(log2(cpm(countTable) + 1)) 
-hist(meanLog2CPM)
-sum(meanLog2CPM <= 1) #This line calculates the number of rows in the count table where the mean log2 CPM is less than or equal to 1. It counts how many rows have a mean log2 CPM value indicating low expression.
-countTable <- countTable[meanLog2CPM > 1, ] #This line subsets the original countTable by keeping only those rows where the mean log2 CPM is greater than 1. It filters out rows with low expression based on the previously calculated mean log2 CPM values.
+# distribution of the mean log2 CPM values across genes
+hist(meanLog2CPM) 
+# how many genes have a mean log2 CPM value <= 1 indicating low expression
+sum(meanLog2CPM <= 1)
+# filters out genes with low expression
+countTable <- countTable[meanLog2CPM > 1, ] 
 dim(countTable)
 
 #######################################################################
 # QC and normalizing
 #######################################################################
 
-#Prepare data for QC
+# prepare data for QC
 dds <- DESeqDataSetFromMatrix(as.matrix(countTable),
-                              design = ~ 0 + NCN.PAM50,
+                              # no intercept, NCN.PAM50 for sample grouping
+                              design = ~ 0 + NCN.PAM50, 
                               colData = sampleTable)
 
 print(dds)
 
-#Normalize
-normCounts <- vst(dds, blind = TRUE) # make sure to handle the heteroscedastic data by normalising away the mean/variance relationship (higher count values associated with higher variance)
+# normalize using variance stabilizing transformation to handle the heteroscedastic data by normalising away the mean/variance relationship (higher count values associated with higher variance)
+normCounts <- vst(dds, 
+                  blind = TRUE) # performed without considering sample groups
+# extract the normalized counts
 assay(normCounts)[1:5, 1:5]
 
-#Distribution
+# distribution of variance-stabilized counts
 hist(assay(normCounts))
 
 #######################################################################
 # Visualization of overall gene expression patterns
 #######################################################################
 
-#Sample heatmap
-sampleDist <- cor(assay(normCounts), method = "spearman")
-sampleColor <- brewer.pal(4, "Accent")[1:3]
-names(sampleColor) <- levels(sampleTable$NCN.PAM50)
-pheatmap(sampleDist,
-         clustering_distance_rows = as.dist(1 - sampleDist),
-         clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(PAM50 = sampleTable$NCN.PAM50,
-                                     row.names = sampleTable$Sample),
-         annotation_colors = list(PAM50 = sampleColor),
-         show_rownames = FALSE,
-         show_colnames = FALSE,
-         treeheight_row = 0,
-         filename = "./output/2_transcriptomic/heatmap.png")
+# Sample heatmap
+# sampleDist <- cor(assay(normCounts), method = "spearman")
+# sampleColor <- brewer.pal(4, "Accent")[1:3]
+# names(sampleColor) <- levels(sampleTable$NCN.PAM50)
+# pheatmap(sampleDist,
+#          clustering_distance_rows = as.dist(1 - sampleDist),
+#          clustering_distance_cols = as.dist(1 - sampleDist),
+#          annotation_col = data.frame(PAM50 = sampleTable$NCN.PAM50,
+#                                      row.names = sampleTable$Sample),
+#          annotation_colors = list(PAM50 = sampleColor),
+#          show_rownames = FALSE,
+#          show_colnames = FALSE,
+#          treeheight_row = 0,
+#          filename = "./output/2_transcriptomic/heatmap.png")
 
 #Sample PCA
 # pcaRes <- prcomp(t(assay(normCounts)))
@@ -158,132 +167,35 @@ pheatmap(sampleDist,
 # sampleTable <- droplevels(sampleTable)
 # colnames(countTable)
 
-
 #######################################################################
 # Differential gene expression analysis
 #######################################################################
 
-#Step 1: Define design matrix
+# Step 1: Define design matrix
 designMatrix <- model.matrix(~ 0 + NCN.PAM50, data = sampleTable)
 designMatrix[1:3,1:3]
 
-#Step 2: Define contrast matrix (Basal vs. LumA and Basal vs. LumB)
+# Step 2: Define contrast matrix (Basal vs. LumA and Basal vs. LumB)
 contrastMatrix <- makeContrasts(Basal_vs_LumA = NCN.PAM50Basal - NCN.PAM50LumA,
                                 Basal_vs_LumB = NCN.PAM50Basal - NCN.PAM50LumB,
                                 levels = designMatrix)
 head(contrastMatrix)
 
-#Step 3: Fit model
+# Step 3: Fit model
 dge <- DGEList(countTable)
 dge <- calcNormFactors(dge)
 dge <- estimateDisp(dge, designMatrix, robust = TRUE)
 fit <- glmQLFit(dge, designMatrix, robust = TRUE)
 
-#Step 4: Perform hypothesis testing
+# Step 4: Perform hypothesis testing
 res <- glmQLFTest(fit, contrast = contrastMatrix)
 res <- topTags(res, n = nrow(countTable))
+
+# Step 5: Save results
+save(res, file=outfile.1)
+
+# check results
 sigRes.Basal_vs_LumA <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumA) > 1)
 sigRes.Basal_vs_LumB <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumB) > 1)
 nrow(sigRes.Basal_vs_LumA)
 nrow(sigRes.Basal_vs_LumB)
-save(res,file=outfile.1)
-
-#######################################################################
-# Visualize results
-#######################################################################
-
-# Vulcano plots
-# Basal_vs_LumA
-volcanoPlot.Basal_vs_LumA <- ggplot(res$table,
-                      aes(x = logFC.Basal_vs_LumA, y = -log10(FDR),
-                          color = ifelse(FDR < 0.05 & abs(logFC.Basal_vs_LumA) > 1,
-                                         "darkred", "grey"))) +
-  geom_point() +
-  xlab(expression("Fold Change, Log"[2]*"")) +
-  ylab(expression("Adjusted P value, Log"[10]*"")) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dotted", linewidth = 1) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumA, y = -log10(FDR), 
-                      label = rownames(res$table[order(
-                        -abs(res$table$logFC.Basal_vs_LumA)), ][1:10,]),
-                      size = 2, color = "steelblue"),
-                  data = res$table[order(-abs(
-                    res$table$logFC.Basal_vs_LumA)), ][1:10,])
-print(volcanoPlot.Basal_vs_LumA)
-
-# Basal_vs_LumB
-volcanoPlot.Basal_vs_LumB <- ggplot(res$table,
-                      aes(x = logFC.Basal_vs_LumB, y = -log10(FDR),
-                          color = ifelse(FDR < 0.05 & abs(logFC.Basal_vs_LumB) > 1,
-                                         "darkred", "grey"))) +
-  geom_point() +
-  xlab(expression("Fold Change, Log"[2]*"")) +
-  ylab(expression("Adjusted P value, Log"[10]*"")) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dotted", linewidth = 1) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumB, y = -log10(FDR), 
-                      label = rownames(res$table[order(
-                        -abs(res$table$logFC.Basal_vs_LumB)), ][1:10,]),
-                      size = 2, color = "steelblue"),
-                  data = res$table[order(-abs(
-                    res$table$logFC.Basal_vs_LumB)), ][1:10,])
-print(volcanoPlot.Basal_vs_LumB)
-
-# Heatmaps
-# Basal_vs_LumA
-# Basal_vs_LumB
-
-#######################################################################
-# Enrichment analyses
-#######################################################################
-
-genes <- rownames(sigRes.Basal_vs_LumA)
-#GO SEA
-goSEA <- enrichGO(
-  gene = genes,
-  OrgDb = org.Hs.eg.db,
-  keyType = "SYMBOL",
-  ont = "BP", #BP, MF or CC
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.05,
-  qvalueCutoff = 0.05)
-#Convert symbols to Entrez IDs
-Entrez.ids <- bitr(
-  genes,
-  fromType = "SYMBOL",
-  toType = c("ENTREZID"),
-  OrgDb = org.Hs.eg.db,
-  drop = FALSE)$ENTREZID
-
-#KEGG SEA
-keggSEA <- enrichKEGG(
-  gene = Entrez.ids,
-  organism = "hsa",
-  keyType = "ncbi-geneid",
-  pvalueCutoff = 0.05,
-  qvalueCutoff = 0.05)
-
-#GO GSEA
-allFC <- sort(res$table$logFC.Basal_vs_LumA, decreasing = TRUE)
-names(allFC) <- rownames(res$table)
-goGSEA <- gseGO(
-  gene = allFC,
-  OrgDb = org.Hs.eg.db,
-  keyType = "SYMBOL",
-  ont = "BP",
-  minGSSize = 10,
-  maxGSSize = 500,
-  pAdjustMethod = "BH",
-  pvalueCutoff = 0.05)
-
-#Visulization
-cnetplot(goSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-dotplot(goSEA)
-goSEA <- pairwise_termsim(goSEA)
-treeplot(goSEA)
