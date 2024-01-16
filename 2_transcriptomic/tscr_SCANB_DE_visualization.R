@@ -70,34 +70,42 @@ res <- loadRData(infile.4)
 # Check results
 #######################################################################
 
+# add bonferroni correction as well
+res$table$Bonf <- p.adjust(res$table$PValue, method = "bonferroni")
+
 # check results
-sigRes.Basal_vs_LumA <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumA) > 1)
-sigRes.Basal_vs_LumB <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumB) > 1)
-nrow(sigRes.Basal_vs_LumA)
-nrow(sigRes.Basal_vs_LumB)
-# or use more stringed cutoffs: 
-# logFC cutoff e.g., log2(3) = 1.584963
-# Bonferroni p.adjust instead of FDR
+# try different cutoffs
+FC_cutoff <- log2(3) # log2(2)
+padj_method <- "FDR" #"Bonf"
+sigRes.Basal_vs_LumA <- subset(res$table, get(padj_method) < 0.05 & abs(logFC.Basal_vs_LumA) > FC_cutoff)
+sigRes.Basal_vs_LumB <- subset(res$table, get(padj_method) < 0.05 & abs(logFC.Basal_vs_LumB) > FC_cutoff)
+nrow(sigRes.Basal_vs_LumA) 
+nrow(sigRes.Basal_vs_LumB) 
+length(setdiff(rownames(sigRes.Basal_vs_LumA),rownames(sigRes.Basal_vs_LumB))) 
 
 #######################################################################
 # Visualize results: Vulcano plots
 #######################################################################
 
+# CHECK IF THERE ARE ALSO NON-SIGNIFICANT GENES, BECAUSE THE PLOT LOOKS WEIRD
+# WHAT GOES WRONG IN HTE DE ANALYSIS THAT ALL OF THEM ARE SIGNIFICANT
+hist(res$table$PValue,breaks=100)
 # Basal_vs_LumA
 volcanoPlot.Basal_vs_LumA <- ggplot(res$table,
-                                    aes(x = logFC.Basal_vs_LumA, y = -log10(FDR),
-                                        color = ifelse(FDR < 0.05 & 
-                                                         abs(logFC.Basal_vs_LumA) > 1,
+                                    aes(x = logFC.Basal_vs_LumA, y = -log10(get(padj_method)),
+                                        color = ifelse(get(padj_method) < 0.05 & 
+                                                         abs(logFC.Basal_vs_LumA) > FC_cutoff,
                                                        "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
   ylab(expression("Adjusted P value, Log"[10]*"")) +
-  geom_vline(xintercept = c(-1, 1), linetype = "dotted", linewidth = 1) +
+  ylim(c(-100, 400)) +
+  geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
   scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumA, y = -log10(FDR), 
+  geom_text_repel(aes(x = logFC.Basal_vs_LumA, y = -log10(get(padj_method)), 
                       label = rownames(res$table[order(
                         -abs(res$table$logFC.Basal_vs_LumA)), ][1:10,]),
                       size = 2, color = "steelblue"),
@@ -146,7 +154,8 @@ plot <- pheatmap(sampleDist,
          annotation_colors = list(PAM50 = color.palette), 
          show_rownames = FALSE,
          show_colnames = FALSE,
-         treeheight_row = 0)
+         treeheight_row = 0,
+         treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_LumB LumA
@@ -162,7 +171,8 @@ plot <- pheatmap(sampleDist,
          annotation_colors = list(PAM50 = color.palette), 
          show_rownames = FALSE,
          show_colnames = FALSE,
-         treeheight_row = 0)
+         treeheight_row = 0,
+         treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_All: include genes that are distinct for both comparisons
@@ -177,7 +187,8 @@ plot <- pheatmap(sampleDist,
          annotation_colors = list(PAM50 = color.palette), # change order?
          show_rownames = FALSE,
          show_colnames = FALSE,
-         treeheight_row = 0)
+         treeheight_row = 0,
+         treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
 
