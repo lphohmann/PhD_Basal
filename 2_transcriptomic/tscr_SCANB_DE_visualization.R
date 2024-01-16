@@ -34,14 +34,14 @@ data.path <- "./data/SCANB/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+infile.1 <- "./data/Parameters/color_palette.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/raw/gene_count_matrix-4.3.csv"
+infile.3 <- "./data/SCANB/2_transcriptomic/processed/gene_count_matrix-4.3_processed.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result.RData"
 # output paths
 #outfile.1 <- #paste0(data.path,"....RData") # excel file with enrichment results
-plot.file <- paste0(output.path,cohort,"_DE.pdf")
-#txt.file <- paste0(output.path,cohort,"_DE.txt")
+plot.file <- paste0(output.path,cohort,"_DE_visualization.pdf")
+#txt.file <- paste0(output.path,cohort,"_DE_visualization.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -52,40 +52,40 @@ plot.parameters <- list() # object to store parameters to plot base R plots agai
 # load data
 #######################################################################
 
-# sample ids
-sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+# load palette
+color.palette <- loadRData(infile.1)[c("LumA","LumB","Basal")]
 
-# annotation
+# processed count data
+normCounts <- loadRData(infile.3)
+
+# annotation # ggf. add prolif, SR, IR metagene scores for annatation tracks
 anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
-anno <- anno[anno$Sample %in% unname(unlist(sampleIDs)),]
-
-# count data
-count.dat <- read.csv(infile.3)
-count.dat <- count.dat[,c("gene_id",intersect(anno$GEX.assay, colnames(count.dat)))]
-
-# correct gene and sampleIDs
-count.dat$gene_id <- gsub(".*\\|", "", count.dat$gene_id)
-count.dat <- count.dat[!duplicated(count.dat[c("gene_id")]), ]
-rownames(count.dat) <- count.dat$gene_id
-count.dat$gene_id <- NULL
-names(count.dat) <- gsub("\\..*", "", colnames(count.dat))
-
-# remove samples for which no count data is available
-anno <- anno[anno$Sample %in% names(count.dat),]
+anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
 
 # DE res
 res <- loadRData(infile.4)
 
 #######################################################################
-# Visualize results
+# Check results
 #######################################################################
 
-# Vulcano plots
+# check results
+sigRes.Basal_vs_LumA <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumA) > 1)
+sigRes.Basal_vs_LumB <- subset(res$table, FDR < 0.05 & abs(logFC.Basal_vs_LumB) > 1)
+nrow(sigRes.Basal_vs_LumA)
+nrow(sigRes.Basal_vs_LumB)
+# or use more stringed logFC cutoff e.g., log2(3) = 1.584963?
+
+#######################################################################
+# Visualize results: Vulcano plots
+#######################################################################
+
 # Basal_vs_LumA
 volcanoPlot.Basal_vs_LumA <- ggplot(res$table,
                                     aes(x = logFC.Basal_vs_LumA, y = -log10(FDR),
-                                        color = ifelse(FDR < 0.05 & abs(logFC.Basal_vs_LumA) > 1,
+                                        color = ifelse(FDR < 0.05 & 
+                                                         abs(logFC.Basal_vs_LumA) > 1,
                                                        "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
@@ -106,7 +106,8 @@ print(volcanoPlot.Basal_vs_LumA)
 # Basal_vs_LumB
 volcanoPlot.Basal_vs_LumB <- ggplot(res$table,
                                     aes(x = logFC.Basal_vs_LumB, y = -log10(FDR),
-                                        color = ifelse(FDR < 0.05 & abs(logFC.Basal_vs_LumB) > 1,
+                                        color = ifelse(FDR < 0.05 & 
+                                                         abs(logFC.Basal_vs_LumB) > 1,
                                                        "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
@@ -124,9 +125,54 @@ volcanoPlot.Basal_vs_LumB <- ggplot(res$table,
                     res$table$logFC.Basal_vs_LumB)), ][1:10,])
 print(volcanoPlot.Basal_vs_LumB)
 
-# Heatmaps
+#######################################################################
+# Visualize results: Heatmaps
+#######################################################################
+
 # Basal_vs_LumA
-# Basal_vs_LumB
+anno.Basal_vs_LumA <- anno[anno$NCN.PAM50 %in% c("Basal","LumA"),]
+normCounts.Basal_vs_LumA <- assay(normCounts)[
+  rownames(sigRes.Basal_vs_LumA), anno.Basal_vs_LumA$Sample]
+sampleDist <- cor(normCounts.Basal_vs_LumA, method = "spearman")
+pheatmap(sampleDist,
+         clustering_distance_rows = as.dist(1 - sampleDist),
+         clustering_distance_cols = as.dist(1 - sampleDist),
+         annotation_col = data.frame(PAM50 = as.factor(anno.Basal_vs_LumA$NCN.PAM50),
+                                     row.names = anno.Basal_vs_LumA$Sample),
+         annotation_colors = list(PAM50 = color.palette), 
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         treeheight_row = 0)
+
+# Basal_vs_LumB LumA
+anno.Basal_vs_LumB <- anno[anno$NCN.PAM50 %in% c("Basal","LumB"),]
+normCounts.Basal_vs_LumB <- assay(normCounts)[
+  rownames(sigRes.Basal_vs_LumB), anno.Basal_vs_LumB$Sample]
+sampleDist <- cor(normCounts.Basal_vs_LumB, method = "spearman")
+pheatmap(sampleDist,
+         clustering_distance_rows = as.dist(1 - sampleDist),
+         clustering_distance_cols = as.dist(1 - sampleDist),
+         annotation_col = data.frame(PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
+                                     row.names = anno.Basal_vs_LumB$Sample),
+         annotation_colors = list(PAM50 = color.palette), 
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         treeheight_row = 0)
+
+# Basal_vs_All: include genes that are distinct for both comparisons
+normCounts.Basal_vs_All <- assay(normCounts)[
+  intersect(rownames(sigRes.Basal_vs_LumA), rownames(sigRes.Basal_vs_LumB)),]
+sampleDist <- cor(normCounts.Basal_vs_All, method = "spearman")
+pheatmap(sampleDist,
+         clustering_distance_rows = as.dist(1 - sampleDist),
+         clustering_distance_cols = as.dist(1 - sampleDist),
+         annotation_col = data.frame(PAM50 = as.factor(anno$NCN.PAM50),
+                                     row.names = anno$Sample),
+         annotation_colors = list(PAM50 = color.palette), # change order?
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         treeheight_row = 0)
+
 
 #######################################################################
 # Enrichment analyses

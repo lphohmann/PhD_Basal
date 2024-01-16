@@ -21,9 +21,7 @@ pacman::p_load(ggplot2,
                RColorBrewer,
                pheatmap,
                limma,
-               clusterProfiler,
-               org.Hs.eg.db,
-               enrichplot)
+               clusterProfiler)
 #-------------------
 # set/create output directories
 # for plots
@@ -39,6 +37,7 @@ infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_
 infile.3 <- "./data/SCANB/2_transcriptomic/raw/gene_count_matrix-4.3.csv"
 # output paths
 outfile.1 <- paste0(data.path,"DE_result.RData")
+outfile.2 <- paste0(data.path,"gene_count_matrix-4.3_processed.RData")
 #plot.file <- paste0(output.path,cohort,"_DE.pdf")
 #txt.file <- paste0(output.path,cohort,"_DE.txt")
 #-------------------
@@ -121,6 +120,9 @@ assay(normCounts)[1:5, 1:5]
 
 # distribution of variance-stabilized counts
 hist(assay(normCounts))
+
+# save processed count data
+save(normCounts, file=outfile.2)
 
 #######################################################################
 # Visualization of overall gene expression patterns
