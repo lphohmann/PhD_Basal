@@ -51,6 +51,14 @@ for(i in 1:length(plot.list)) {
 }
 dev.off()
 
+# or
+pdf(file = plot.file, onefile = TRUE)
+for(i in 1:length(plot.list)) {
+  grid::grid.newpage()
+  grid::grid.draw(plot.list[[i]])
+}
+dev.off()
+
 ################################################################################
 # save text
 #################################################################################
