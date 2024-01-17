@@ -64,80 +64,91 @@ anno <- anno[anno$Follow.up.cohort == TRUE,]
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
 
 # DE res
-res <- loadRData(infile.4) # Why do I have only 1 p.value???? I should have two
+res <- loadRData(infile.4) 
 
 #######################################################################
 # Check results
 #######################################################################
 
 # add bonferroni correction as well
-res$table$Bonf <- p.adjust(res$table$PValue, method = "bonferroni")
+res$Bonf.LumA <- p.adjust(res$PValue.LumA, method = "bonferroni")
+res$Bonf.LumB <- p.adjust(res$PValue.LumB, method = "bonferroni")
 
 # check results
-#genes where the differential expression is statistically significant and large enough to be considered biologically meaningful
-# try different cutoffs
-FC_cutoff <- log2(3) # log2(2)
+# try different cutoffs: select genes where the differential expression 
+# is statistically significant and large enough to be considered biologically meaningful
+FC_cutoff <- log2(2) # log2(3)
 padj_method <- "FDR" #"Bonf"
-sigRes.Basal_vs_LumA <- subset(res$table, get(padj_method) < 0.05 & abs(logFC.Basal_vs_LumA) > FC_cutoff)
-sigRes.Basal_vs_LumB <- subset(res$table, get(padj_method) < 0.05 & abs(logFC.Basal_vs_LumB) > FC_cutoff)
-nrow(sigRes.Basal_vs_LumA) 
-nrow(sigRes.Basal_vs_LumB) 
-length(setdiff(rownames(sigRes.Basal_vs_LumA),rownames(sigRes.Basal_vs_LumB))) 
+DEGs.Basal_vs_LumA <- rownames(subset(
+  res, get(paste0(padj_method,".LumA")) < 0.05 & abs(logFC.LumA) > FC_cutoff))
+DEGs.Basal_vs_LumB <- rownames(subset(
+  res, get(paste0(padj_method,".LumB")) < 0.05 & abs(logFC.LumB) > FC_cutoff))
+length(DEGs.Basal_vs_LumA) 
+length(DEGs.Basal_vs_LumB) 
+length(setdiff(rownames(DEGs.Basal_vs_LumA),rownames(DEGs.Basal_vs_LumB))) 
+
+# checking further
+hist(res$FDR.LumA,breaks = 100)
+hist(res$Bonf.LumA,breaks = 100)
+nrow(res[res$FDR.LumA <= 0.05,]) 
+nrow(res[res$Bonf.LumA <= 0.05,])
+# conclusions: padj method makes a difference but the logFC cutoff still 
+# results in similar numbers of DEGs with both methods
 
 #######################################################################
 # Visualize results: Vulcano plots
 #######################################################################
 
-# CHECK IF THERE ARE ALSO NON-SIGNIFICANT GENES, BECAUSE THE PLOT LOOKS WEIRD
-# WHAT GOES WRONG IN HTE DE ANALYSIS THAT ALL OF THEM ARE SIGNIFICANT
-hist(res$table$PValue,breaks=100)
-
 # Basal_vs_LumA
-volcanoPlot.Basal_vs_LumA <- ggplot(res$table,
-                                    aes(x = logFC.Basal_vs_LumA, y = -log10(get(padj_method)),
-                                        color = ifelse(get(padj_method) < 0.05 & 
-                                                         abs(logFC.Basal_vs_LumA) > FC_cutoff,
-                                                       "darkred", "grey"))) +
+volcanoPlot.Basal_vs_LumA <- ggplot(res, aes(x = logFC.LumA, 
+                                             y = -log10(get(paste0(padj_method,".LumA"))),
+                                             color = ifelse(
+                                               get(paste0(padj_method,".LumA")) < 0.05 & 
+                                                 abs(logFC.LumA) > FC_cutoff, 
+                                               "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
-  ylab(expression("Adjusted P value, Log"[10]*"")) +
-  ylim(c(-100, 400)) +
+  ylab(expression("Adjusted P value, -Log"[10]*"")) +
+  ylim(c(0,240)) +
   geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
-  scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumA, y = -log10(get(padj_method)), 
-                      label = rownames(res$table[order(
-                        -abs(res$table$logFC.Basal_vs_LumA)), ][1:10,]),
+  scale_colour_manual(values = c("darkred", "grey", "steelblue")) + 
+  geom_text_repel(aes(x = logFC.LumA, y = -log10(get(paste0(padj_method,".LumA"))), 
+                      label = rownames(res[order(
+                        -abs(res$logFC.LumA)), ][1:10,]),
                       size = 2, color = "steelblue"),
-                  data = res$table[order(-abs(
-                    res$table$logFC.Basal_vs_LumA)), ][1:10,])
+                  data = res[order(-abs(
+                    res$logFC.LumA)), ][1:10,])
 
+#print(volcanoPlot.Basal_vs_LumA)
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumA))
 
 # Basal_vs_LumB
-volcanoPlot.Basal_vs_LumB <- ggplot(res$table,
-                                    aes(x = logFC.Basal_vs_LumB, y = -log10(get(padj_method)),
-                                        color = ifelse(get(padj_method) < 0.05 & 
-                                                         abs(logFC.Basal_vs_LumB) > FC_cutoff,
-                                                       "darkred", "grey"))) +
+volcanoPlot.Basal_vs_LumB <- ggplot(res, aes(x = logFC.LumB, 
+                                             y = -log10(get(paste0(padj_method,".LumB"))),
+                                             color = ifelse(
+                                               get(paste0(padj_method,".LumB")) < 0.05 & 
+                                                 abs(logFC.LumB) > FC_cutoff, 
+                                               "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
-  ylab(expression("Adjusted P value, Log"[10]*"")) +
-  ylim(c(-100, 400)) +
+  ylab(expression("Adjusted P value, -Log"[10]*"")) +
+  ylim(c(0,250)) +
   geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
-  scale_colour_manual(values = c("darkred", "grey", "steelblue")) +
-  geom_text_repel(aes(x = logFC.Basal_vs_LumB, y = -log10(get(padj_method)), 
-                      label = rownames(res$table[order(
-                        -abs(res$table$logFC.Basal_vs_LumB)), ][1:10,]),
+  scale_colour_manual(values = c("darkred", "grey", "steelblue")) + 
+  geom_text_repel(aes(x = logFC.LumB, y = -log10(get(paste0(padj_method,".LumB"))), 
+                      label = rownames(res[order(
+                        -abs(res$logFC.LumB)), ][1:10,]),
                       size = 2, color = "steelblue"),
-                  data = res$table[order(-abs(
-                    res$table$logFC.Basal_vs_LumB)), ][1:10,])
+                  data = res[order(-abs(
+                    res$logFC.LumB)), ][1:10,])
 
+#print(volcanoPlot.Basal_vs_LumB)
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
 
 #######################################################################
@@ -147,7 +158,7 @@ plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
 # Basal_vs_LumA
 anno.Basal_vs_LumA <- anno[anno$NCN.PAM50 %in% c("Basal","LumA"),]
 normCounts.Basal_vs_LumA <- assay(normCounts)[
-  rownames(sigRes.Basal_vs_LumA), anno.Basal_vs_LumA$Sample]
+  DEGs.Basal_vs_LumA, anno.Basal_vs_LumA$Sample]
 sampleDist <- cor(normCounts.Basal_vs_LumA, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
@@ -164,7 +175,7 @@ plot.list <- append(plot.list, list(plot))
 # Basal_vs_LumB LumA
 anno.Basal_vs_LumB <- anno[anno$NCN.PAM50 %in% c("Basal","LumB"),]
 normCounts.Basal_vs_LumB <- assay(normCounts)[
-  rownames(sigRes.Basal_vs_LumB), anno.Basal_vs_LumB$Sample]
+  DEGs.Basal_vs_LumB, anno.Basal_vs_LumB$Sample]
 sampleDist <- cor(normCounts.Basal_vs_LumB, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
@@ -180,7 +191,7 @@ plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_All: include genes that are distinct for both comparisons
 normCounts.Basal_vs_All <- assay(normCounts)[
-  intersect(rownames(sigRes.Basal_vs_LumA), rownames(sigRes.Basal_vs_LumB)),]
+  intersect(DEGs.Basal_vs_LumA, DEGs.Basal_vs_LumB),]
 sampleDist <- cor(normCounts.Basal_vs_All, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
