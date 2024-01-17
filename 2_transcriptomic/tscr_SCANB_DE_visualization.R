@@ -64,7 +64,7 @@ anno <- anno[anno$Follow.up.cohort == TRUE,]
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
 
 # DE res
-res <- loadRData(infile.4)
+res <- loadRData(infile.4) # Why do I have only 1 p.value???? I should have two
 
 #######################################################################
 # Check results
@@ -74,6 +74,7 @@ res <- loadRData(infile.4)
 res$table$Bonf <- p.adjust(res$table$PValue, method = "bonferroni")
 
 # check results
+#genes where the differential expression is statistically significant and large enough to be considered biologically meaningful
 # try different cutoffs
 FC_cutoff <- log2(3) # log2(2)
 padj_method <- "FDR" #"Bonf"
