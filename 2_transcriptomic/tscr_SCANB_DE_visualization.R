@@ -152,7 +152,7 @@ volcanoPlot.Basal_vs_LumB <- ggplot(res, aes(x = logFC.LumB,
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
 
 #######################################################################
-# Visualize results: Heatmaps
+# Visualize results: Heatmaps; add annotation tracks
 #######################################################################
 
 # Basal_vs_LumA
@@ -205,39 +205,47 @@ plot <- pheatmap(sampleDist,
          treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
-
 #######################################################################
-# Until here for now, continue tomorrow.
-#######################################################################
-
-pdf(file = plot.file, onefile = TRUE)
-for(i in 1:length(plot.list)) {
-  grid::grid.newpage()
-  grid::grid.draw(plot.list[[i]])
-}
-dev.off()
-
-#######################################################################
-# Enrichment analyses
+# Singluar enrichment analyses (SEA) for Basal-specific DEGs
 #######################################################################
 
-# genes <- rownames(sigRes.Basal_vs_LumA)
-# #GO SEA
-# goSEA <- enrichGO(
-#   gene = genes,
-#   OrgDb = org.Hs.eg.db,
-#   keyType = "SYMBOL",
-#   ont = "BP", #BP, MF or CC
-#   pAdjustMethod = "BH",
-#   pvalueCutoff = 0.05,
-#   qvalueCutoff = 0.05)
-# #Convert symbols to Entrez IDs
-# Entrez.ids <- bitr(
-#   genes,
-#   fromType = "SYMBOL",
-#   toType = c("ENTREZID"),
-#   OrgDb = org.Hs.eg.db,
-#   drop = FALSE)$ENTREZID
+# basal specific genes and their entrez ids
+genes <- intersect(DEGs.Basal_vs_LumA, DEGs.Basal_vs_LumB)
+#Convert symbols to Entrez IDs
+Entrez.ids <- bitr(
+  genes,
+  fromType = "SYMBOL",
+  toType = c("ENTREZID"),
+  OrgDb = org.Hs.eg.db,
+  drop = FALSE)$ENTREZID
+
+#---------------------------------
+# SEA based on different databases
+
+#GO SEA
+goSEA <- enrichGO(
+  gene = genes,
+  OrgDb = org.Hs.eg.db,
+  keyType = "SYMBOL",
+  #subontologies: BP for Biological Process, MF for Molecular Function, and CC for Cellular Component
+  ont = "BP", #BP, MF or CC
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  qvalueCutoff = 0.05)
+
+#Visulization
+plot <- cnetplot(goSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+plot.list <- append(plot.list, list(plot))
+
+plot <- dotplot(goSEA)
+plot.list <- append(plot.list, list(plot))
+
+goSEA <- pairwise_termsim(goSEA)
+plot <- treeplot(goSEA)
+plot.list <- append(plot.list, list(plot))
+
+
+# #---------------------------------
 # 
 # #KEGG SEA
 # keggSEA <- enrichKEGG(
@@ -247,9 +255,20 @@ dev.off()
 #   pvalueCutoff = 0.05,
 #   qvalueCutoff = 0.05)
 # 
+# #Visulization
+# cnetplot(keggSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+# dotplot(keggSEA)
+# keggSEA <- pairwise_termsim(keggSEA)
+# treeplot(keggSEA)
+
+
+#######################################################################
+# Gene set enrichment analyses (GSEA), for LumA and LumB comparisons
+#######################################################################
+
 # #GO GSEA
-# allFC <- sort(res$table$logFC.Basal_vs_LumA, decreasing = TRUE)
-# names(allFC) <- rownames(res$table)
+# allFC <- sort(res$logFC.LumA, decreasing = TRUE)
+# names(allFC) <- rownames(res)
 # goGSEA <- gseGO(
 #   gene = allFC,
 #   OrgDb = org.Hs.eg.db,
@@ -261,7 +280,36 @@ dev.off()
 #   pvalueCutoff = 0.05)
 # 
 # #Visulization
-# cnetplot(goSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(goSEA)
-# goSEA <- pairwise_termsim(goSEA)
-# treeplot(goSEA)
+# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+# dotplot(goGSEA)
+# goGSEA <- pairwise_termsim(goGSEA)
+# treeplot(goGSEA)
+
+# allFC <- sort(res$logFC.LumB, decreasing = TRUE)
+# names(allFC) <- rownames(res)
+# goGSEA <- gseGO(
+#   gene = allFC,
+#   OrgDb = org.Hs.eg.db,
+#   keyType = "SYMBOL",
+#   ont = "BP",
+#   minGSSize = 10,
+#   maxGSSize = 500,
+#   pAdjustMethod = "BH",
+#   pvalueCutoff = 0.05)
+# 
+# #Visulization
+# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+# dotplot(goGSEA)
+# goGSEA <- pairwise_termsim(goGSEA)
+# treeplot(goGSEA)
+
+#######################################################################
+# Until here for now, continue tomorrow.
+#######################################################################
+
+pdf(file = plot.file, onefile = TRUE)
+for(i in 1:length(plot.list)) {
+  grid::grid.newpage()
+  grid::grid.draw(plot.list[[i]])
+}
+dev.off()
