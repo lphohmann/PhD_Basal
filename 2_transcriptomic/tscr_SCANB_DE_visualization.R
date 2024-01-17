@@ -1,6 +1,7 @@
 # Script: Visualizing SCAN-B differential gene expression results
 # Author: Lennart Hohmann
 # Date: 16.01.2024
+#TODO:  add metagene annotation tracks to heatmap
 #-------------------
 # empty environment 
 rm(list=ls())
@@ -38,6 +39,7 @@ infile.1 <- "./data/Parameters/color_palette.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/processed/gene_count_matrix-4.3_processed.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result.RData"
+infile.5 <- "./data/SCANB/2_transcriptomic/processed/"
 # output paths
 #outfile.1 <- #paste0(data.path,"....RData") # excel file with enrichment results
 plot.file <- paste0(output.path,cohort,"_DE_visualization.pdf")
@@ -62,6 +64,22 @@ normCounts <- loadRData(infile.3)
 anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
+
+mg.colors <- c("<= -2"="#2e4053","-1 to -2"="#5d6d7e",
+               "-0.5 to -1"="#aeb6bf","-0.5 to 0.5"="#ecf0f1",
+               "0.5 to 1"="#edbb99","1 to 2"="#dc7633",">= 2"="#ba4a00")
+mg_converter <- function(mg) {
+  mg.class<-rep(NA,length(mg)) # global variable or what????
+  mg.class[which(mg <= -2)] <- "<= -2"
+  mg.class[which((mg <= -1) & (mg > -2) )] <- "-1 to -2"
+  mg.class[which((mg <= -0.5) & (mg > -1) )] <- "-0.5 to -1"
+  mg.class[which((mg >= -0.5) & (mg < 0.5) )] <- "-0.5 to 0.5"
+  mg.class[which((mg >= 0.5) & (mg < 1) )] <- "0.5 to 1"
+  mg.class[which((mg >= 1) & (mg < 2) )] <- "1 to 2"
+  mg.class[which(mg >= 2)] <- ">= 2"
+  return(mg.class)
+}
+
 
 # DE res
 res <- loadRData(infile.4) 
@@ -152,7 +170,7 @@ volcanoPlot.Basal_vs_LumB <- ggplot(res, aes(x = logFC.LumB,
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
 
 #######################################################################
-# Visualize results: Heatmaps; add annotation tracks
+# Visualize results: Heatmaps
 #######################################################################
 
 # Basal_vs_LumA
@@ -164,8 +182,8 @@ plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
          annotation_col = data.frame(PAM50 = as.factor(anno.Basal_vs_LumA$NCN.PAM50),
-                                     row.names = anno.Basal_vs_LumA$Sample),
-         annotation_colors = list(PAM50 = color.palette), 
+                                     row.names = anno.Basal_vs_LumA$Sample), ##
+         annotation_colors = list(PAM50 = color.palette),  ##
          show_rownames = FALSE,
          show_colnames = FALSE,
          treeheight_row = 0,

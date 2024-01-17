@@ -31,6 +31,7 @@ infile.2 <- "./data/Parameters/color_palette.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/raw/metagene_definitions.XLSX"
 # output paths
+outfile.1 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores.RData"
 plot.file <- paste0(output.path,cohort,"_metagenes.pdf")
 txt.file <- paste0(output.path,cohort,"_metagenes.txt")
 #-------------------
@@ -75,6 +76,7 @@ mg.scores <- apply(gex.df, 2, function(x) {
 
 rownames(mg.scores) <- metagenes
 mg.scores <- as.data.frame(mg.scores)
+save(mg.scores,file=outfile.1)
 
 #######################################################################
 # test and plot
