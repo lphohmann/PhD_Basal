@@ -39,7 +39,7 @@ infile.1 <- "./data/Parameters/color_palette.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/processed/gene_count_matrix-4.3_processed.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result.RData"
-infile.5 <- "./data/SCANB/2_transcriptomic/processed/"
+infile.5 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores.RData"
 # output paths
 #outfile.1 <- #paste0(data.path,"....RData") # excel file with enrichment results
 plot.file <- paste0(output.path,cohort,"_DE_visualization.pdf")
@@ -65,21 +65,14 @@ anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
 
-mg.colors <- c("<= -2"="#2e4053","-1 to -2"="#5d6d7e",
-               "-0.5 to -1"="#aeb6bf","-0.5 to 0.5"="#ecf0f1",
-               "0.5 to 1"="#edbb99","1 to 2"="#dc7633",">= 2"="#ba4a00")
-mg_converter <- function(mg) {
-  mg.class<-rep(NA,length(mg)) # global variable or what????
-  mg.class[which(mg <= -2)] <- "<= -2"
-  mg.class[which((mg <= -1) & (mg > -2) )] <- "-1 to -2"
-  mg.class[which((mg <= -0.5) & (mg > -1) )] <- "-0.5 to -1"
-  mg.class[which((mg >= -0.5) & (mg < 0.5) )] <- "-0.5 to 0.5"
-  mg.class[which((mg >= 0.5) & (mg < 1) )] <- "0.5 to 1"
-  mg.class[which((mg >= 1) & (mg < 2) )] <- "1 to 2"
-  mg.class[which(mg >= 2)] <- ">= 2"
-  return(mg.class)
-}
+# add metagene scores to the annotation
+mg.scores <- as.data.frame(t(loadRData(infile.5)))
+mg.scores$Sample <- rownames(mg.scores)
+rownames(mg.scores) <- NULL
+anno <- merge(anno, mg.scores, by = "Sample", all.x = TRUE)
 
+# apply the function to each numeric column using apply
+anno[, sapply(anno, is.numeric)] <- apply(anno[, sapply(anno, is.numeric)], 2, add_labels)
 
 # DE res
 res <- loadRData(infile.4) 
@@ -172,6 +165,10 @@ plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
 #######################################################################
 # Visualize results: Heatmaps
 #######################################################################
+mg.colors <- c("<= -2"="#2e4053","-1 to -2"="#5d6d7e",
+               "-0.5 to -1"="#aeb6bf","-0.5 to 0.5"="#ecf0f1",
+               "0.5 to 1"="#edbb99","1 to 2"="#dc7633",">= 2"="#ba4a00")
+
 
 # Basal_vs_LumA
 anno.Basal_vs_LumA <- anno[anno$NCN.PAM50 %in% c("Basal","LumA"),]
@@ -181,9 +178,15 @@ sampleDist <- cor(normCounts.Basal_vs_LumA, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(PAM50 = as.factor(anno.Basal_vs_LumA$NCN.PAM50),
-                                     row.names = anno.Basal_vs_LumA$Sample), ##
-         annotation_colors = list(PAM50 = color.palette),  ##
+         annotation_col = data.frame(Proliferation = anno.Basal_vs_LumA$Mitotic_progression,
+                                     SteroidResponse = anno.Basal_vs_LumA$SR,
+                                     ImmuneResponse = anno.Basal_vs_LumA$IR,
+                                     PAM50 = as.factor(anno.Basal_vs_LumA$NCN.PAM50),
+                                     row.names = anno.Basal_vs_LumA$Sample), 
+         annotation_colors = list(Proliferation = mg.colors,
+                                  SteroidResponse = mg.colors,
+                                  ImmuneResponse = mg.colors,
+                                  PAM50 = color.palette),  
          show_rownames = FALSE,
          show_colnames = FALSE,
          treeheight_row = 0,
@@ -198,9 +201,15 @@ sampleDist <- cor(normCounts.Basal_vs_LumB, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
-                                     row.names = anno.Basal_vs_LumB$Sample),
-         annotation_colors = list(PAM50 = color.palette), 
+         annotation_col = data.frame(Proliferation = anno.Basal_vs_LumB$Mitotic_progression,
+                                     SteroidResponse = anno.Basal_vs_LumB$SR,
+                                     ImmuneResponse = anno.Basal_vs_LumB$IR,
+                                     PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
+                                     row.names = anno.Basal_vs_LumB$Sample), 
+         annotation_colors = list(Proliferation = mg.colors,
+                                  SteroidResponse = mg.colors,
+                                  ImmuneResponse = mg.colors,
+                                  PAM50 = color.palette),
          show_rownames = FALSE,
          show_colnames = FALSE,
          treeheight_row = 0,
@@ -214,9 +223,15 @@ sampleDist <- cor(normCounts.Basal_vs_All, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(PAM50 = as.factor(anno$NCN.PAM50),
-                                     row.names = anno$Sample),
-         annotation_colors = list(PAM50 = color.palette), # change order?
+         annotation_col = data.frame(Proliferation = anno$Mitotic_progression,
+                                     SteroidResponse = anno$SR,
+                                     ImmuneResponse = anno$IR,
+                                     PAM50 = as.factor(anno$NCN.PAM50),
+                                     row.names = anno$Sample), 
+         annotation_colors = list(Proliferation = mg.colors,
+                                  SteroidResponse = mg.colors,
+                                  ImmuneResponse = mg.colors,
+                                  PAM50 = color.palette),
          show_rownames = FALSE,
          show_colnames = FALSE,
          treeheight_row = 0,

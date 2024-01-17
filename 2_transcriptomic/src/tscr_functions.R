@@ -27,3 +27,10 @@ get_stats <- function(vec) {
   return(c("mean"=mean, "median"=median, "sd"=sd))
 }
 
+# put metagene scores into bins
+add_labels <- function(column) {
+  breakpoints <- c(-Inf,-2,-1,-0.5,0.5,1,2,Inf)
+  labels <- c("<= -2","-1 to -2","-0.5 to -1",
+              "-0.5 to 0.5","0.5 to 1","1 to 2",">= 2")
+  cut(column, breaks = breakpoints, labels = labels, include.lowest = TRUE)
+}
