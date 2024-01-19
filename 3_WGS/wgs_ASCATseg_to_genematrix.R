@@ -35,11 +35,9 @@ data.path <- "./data/SCANB/3_WGS/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/Parameters/color_palette.RData"
-infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
+infile.1 <- "./data/SCANB/3_WGS/raw/ASCAT_segments_list_BASEprocessing.RData"
 # output paths
-#outfile.1 <- ""
+outfile.1 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
 #plot.file <- paste0(output.path,cohort,"_i.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
@@ -47,41 +45,30 @@ infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal pro
 plot.list <- list() # object to store plots
 plot.parameters <- list() # object to store parameters to plot base R plots again later
 txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
+#-------------------
+start.time <- Sys.time()
 
 #######################################################################
 # load data
 #######################################################################
 
-ascat.list <- loadRData("./data/SCANB/3_WGS/raw/ASCAT_segments_list_BASEprocessing.RData")
-
-View(head(ascat.list))
-View(head(ascat.list[[1]]))
+ascat.list <- loadRData(infile.1)
 
 #######################################################################
 # correct sample IDs
 #######################################################################
 
-
-
-#######################################################################
-# get chromosome lengths
-#######################################################################
-# why do i need that
-
-# chr lengths
-# get chr lengths to get genome positions of probes (excluding chr X)
-chr.lengths <- as.data.frame(read.table(file = infile.3, sep = '\t', header = FALSE))[1:22,] %>% 
-  dplyr::rename(chr=V1,length=V2) %>% 
-  mutate(genome = cumsum(as.numeric(length))) %>% 
-  mutate(genome = lag(genome,default = 0)) # lag by 1 position (cause I have to add the length of the previous chr to the probe positions (0 for chr1 probes))
-chr.lengths$chr <- as.numeric(gsub('^.{3}','',chr.lengths$chr))
-
-#######################################################################
-# convert to gene matrix, also stored in list
-#######################################################################
-
-# convert
-
+# scanb
+# # ID key file
+# id.key <- as.data.frame(read_excel("./data/SCANB/3_genomic/raw/HER2_enriched_June23_ForJohan.xlsx", sheet = "Samples")) %>% 
+#   dplyr::select(c("Sample","Tumour")) %>% dplyr::rename(sample=Sample)
+# 
+# # correct ids now
+# res$sampleID <- id.key$sample[match(res$sample,id.key$Tumour)]
+# res$sample <- NULL
+# res$PAM50 <- rep("HER2E", length(sample))
+# res$N_mut <- as.numeric(res$caveman_count) + as.numeric(res$pindel_count)
+# scanb.muts <- res
 
 ################################################################################
 # prepare the gene annotation data to which the segments are mapped
@@ -106,25 +93,13 @@ genes[, numeric_columns] <- lapply(genes[, numeric_columns], as.numeric)
 # convert to gene matrix (1 row per gene), also stored in list
 ################################################################################
 
-# get segment data
-#cn.scanb.segments <- loadRData(scanb.segments)
-ascat.list
-colnames(ascat.list[[1]])
-
-# Create empty data frames for storing results
+#colnames(ascat.list[[1]])
 dat.cols <- c("CNA","LOH","cnnLOH","Amp","HomDel")
-res.names <- c("gene", "chr", "start", "end", c(names(ascat.list)))
-for (name in dat.cols) {
-  assign(paste0(name, ".df"), data.frame(matrix(nrow = 0, ncol = length(res.names), 
-                                                dimnames = list(NULL, res.names))))
-}
+res.list <- list()
 
 # loop over genes
-i=1 # DEL LATER
-
-
 pb = txtProgressBar(min = 0, max = length(genes$SYMBOL), initial = 0, style = 3)
-for (i in 1:nrow(genes)) {
+for (i in 1:30) { #nrow(genes)
   setTxtProgressBar(pb,i)
   
   gene.dat <- genes[i,]
@@ -165,65 +140,42 @@ for (i in 1:nrow(genes)) {
   })
   
   #
-  gene.res <- t(gene.statuses)
-  View(gene.res)
-  
-  # CONT HERE
+  gene.res <- as.data.frame(t(gene.statuses))
+  gene.res$sample <- rownames(gene.res)
+  rownames(gene.res) <- NULL
   # store results
-  
-  gl.df[i,] <- c(gene.dat$SYMBOL,
-                 gene.dat$chr,
-                 gene.dat$start,
-                 gene.dat$end,
-                 unname(unlist(gene.statuses["GainLoss",])))
-  
-  amp.df[i,] <- c(gene.dat$SYMBOL,
-                  gene.dat$chr,
-                  gene.dat$start,
-                  gene.dat$end,
-                  unname(unlist(gene.statuses["Amp",])))
+  res.list[[gene.dat$SYMBOL]] <- gene.res
   
   close(pb)
 }
 
-cn.list <- list("gainloss"=gl.df,"amp"=amp.df)
 
-# add center position
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% mutate_at(c("chr","start","end"), as.numeric)
-  centerPos.vec <- apply(df, 1, function(row) {
-    gene.length <- as.numeric(row[["end"]]) - as.numeric(row[["start"]])
-    centerPos <- as.numeric(row[["start"]]) + (gene.length/2)
-    return(centerPos)
-  })
-  df$centerPos <- centerPos.vec
-  df <- df %>% dplyr::relocate(centerPos, .after=chr)
-  return(df)
-})
+#######################################################################
+# format results to get 1 df per sample
+#######################################################################
 
-# convert to genome position
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% 
-    mutate_at(c("chr","start","end"), as.numeric) %>% 
-    # add new chr genome position column
-    mutate(genome = 0) %>% 
-    # update the genome col to fill in the actual chr positions
-    rows_update(chr.lengths[c("chr","genome")]) %>% 
-    # add a column with the genome position of each probe
-    mutate(Genome_pos = centerPos + genome) %>% 
-    relocate(c(genome,Genome_pos), .after=centerPos) %>% 
-    dplyr::select(-c(genome))
-  return(df)
-})
+# Create a list to store individual data frames for each sampleID
+sample.res <- list()
 
-# remove start and end
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% 
-    dplyr::select(-c(start, end))
-  return(df)
-})
+# Loop through each sampleID and create a data frame containing corresponding rows
+for (sampleID in names(ascat.list)) {
+  sample.df <- do.call(rbind, lapply(res.list, function(df) {subset(df, sample == sampleID)}))
+  rownames(sample.df) <- NULL
+  sample.res[[as.character(sampleID)]] <- sample.df[c("sample", 
+                                                      colnames(sample.df)[colnames(sample.df) != "sample"])]
+}
 
-#save(cn.list,
-#     file = scanb.gene.cna)
 
-cn.scanb.list <- loadRData(scanb.gene.cna)
+
+
+
+# save
+save(sample.res, file= outfile.1)
+
+#x <- loadRData("./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData")
+#View(x[[1]])
+
+end.time <- Sys.time()
+time.taken <- end.time - start.time
+print(time.taken)
+# takes approx 9.749125 hours
