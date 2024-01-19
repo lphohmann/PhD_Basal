@@ -99,7 +99,7 @@ res.list <- list()
 
 # loop over genes
 pb = txtProgressBar(min = 0, max = length(genes$SYMBOL), initial = 0, style = 3)
-for (i in 1:30) { #nrow(genes)
+for (i in 1:nrow(genes)) { #nrow(genes)
   setTxtProgressBar(pb,i)
   
   gene.dat <- genes[i,]
@@ -164,10 +164,6 @@ for (sampleID in names(ascat.list)) {
   sample.res[[as.character(sampleID)]] <- sample.df[c("sample", 
                                                       colnames(sample.df)[colnames(sample.df) != "sample"])]
 }
-
-
-
-
 
 # save
 save(sample.res, file= outfile.1)
