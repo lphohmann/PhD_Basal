@@ -145,7 +145,7 @@ for (i in 1:nrow(genes)) { #nrow(genes)
   rownames(gene.res) <- NULL
   # store results
   res.list[[gene.dat$SYMBOL]] <- gene.res
-  
+  save(res.list, file= "./data/SCANB/3_WGS/processed/ASCAT_genelevel_temp.RData") # delete later
   close(pb)
 }
 
