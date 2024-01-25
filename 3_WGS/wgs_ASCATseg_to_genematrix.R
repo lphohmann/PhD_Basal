@@ -94,15 +94,17 @@ genes[, numeric_columns] <- lapply(genes[, numeric_columns], as.numeric)
 ################################################################################
 
 #colnames(ascat.list[[1]])
-dat.cols <- c("CNA","LOH","cnnLOH","Amp","HomDel")
+dat.cols <- c("nMajor","nMinor","nAraw","nBraw","size",
+              "nTot","CNA","LOH","cnnLOH","Amp","HomDel")
 res.list <- list()
 
 # loop over genes
 pb = txtProgressBar(min = 0, max = length(genes$SYMBOL), initial = 0, style = 3)
-for (i in 1:nrow(genes)) { #nrow(genes)
+for (i in 1:nrow(genes)) { #nrow(genes)) { 
   setTxtProgressBar(pb,i)
   
   gene.dat <- genes[i,]
+  print(gene.dat$SYMBOL)
   
   # get the gainloss and amp state of that gene for all samples
   gene.statuses <- sapply(ascat.list, function(segment.df) {
@@ -123,7 +125,7 @@ for (i in 1:nrow(genes)) { #nrow(genes)
     # check 
     chr.segments$overlap = countOverlaps(segments.query, gene.subject) != 0 # calculating overlaps
     if (sum(chr.segments$overlap)==0) { # no segment covers the gene region
-      main.segment <- c("CNA"=NA,"LOH"=NA,"cnnLOH"=NA,"Amp"=NA,"HomDel"=NA)
+      main.segment <- setNames(rep(NA, length(dat.cols)), dat.cols)
     } else {
       hits <- findOverlaps(segments.query, gene.subject)
       overlaps <- pintersect(segments.query[queryHits(hits)], gene.subject[subjectHits(hits)])
@@ -145,7 +147,6 @@ for (i in 1:nrow(genes)) { #nrow(genes)
   rownames(gene.res) <- NULL
   # store results
   res.list[[gene.dat$SYMBOL]] <- gene.res
-  save(res.list, file= "./data/SCANB/3_WGS/processed/ASCAT_genelevel_temp.RData") # delete later
   close(pb)
 }
 
@@ -167,9 +168,6 @@ for (sampleID in names(ascat.list)) {
 
 # save
 save(sample.res, file= outfile.1)
-
-#x <- loadRData("./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData")
-#View(x[[1]])
 
 end.time <- Sys.time()
 time.taken <- end.time - start.time
