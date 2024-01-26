@@ -94,7 +94,8 @@ umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
      pch = 16,
-     main = "UMAP Basal-like core DEGs", xlab = "UMAP1", ylab = "UMAP2")
+     main = paste0("UMAP Basal-like core DEGs n=", nrow(normCounts.Basal_vs_All)), 
+     xlab = "UMAP1", ylab = "UMAP2")
 legend("bottomright", legend = names(color.palette), col = color.palette, 
        pch = 16)
 
@@ -102,7 +103,7 @@ plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
 
 #######################################################################
-# UMAP based on all genes
+# UMAP based on all filtered genes
 #######################################################################
 
 # transpose data so each row is a sample
@@ -115,7 +116,30 @@ umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
      pch = 16,
-     main = "UMAP all genes", xlab = "UMAP1", ylab = "UMAP2")
+     main = paste0("UMAP all filtered genes n=",nrow(assay(normCounts))), 
+     xlab = "UMAP1", ylab = "UMAP2")
+legend("topright", legend = names(color.palette), col = color.palette, 
+       pch = 16)
+
+plot <- recordPlot()
+plot.list <- append(plot.list, list(plot))
+
+#######################################################################
+# UMAP based on top 5000 varying genes
+#######################################################################
+
+# transpose data so each row is a sample
+umap.dat <- umap(t(assay(normCounts)))
+umap.dat.plot <- as.data.frame(umap.dat$layout)
+# add metadata
+umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)]
+
+# plot
+plot(umap.dat.plot$V1, umap.dat.plot$V2, 
+     col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
+     pch = 16,
+     main = paste0("UMAP all filtered genes n=",nrow(assay(normCounts))), 
+     xlab = "UMAP1", ylab = "UMAP2")
 legend("topright", legend = names(color.palette), col = color.palette, 
        pch = 16)
 
@@ -130,5 +154,3 @@ for(i in 1:length(plot.list)) {
   print(plot.list[[i]])
 }
 dev.off()
-
-#sessioninfo::session_info()
