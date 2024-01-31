@@ -1,4 +1,4 @@
-# Script: UMAP based on ... in SCAN-B
+# Script: UMAP based on FPKM and Count data in SCAN-B
 # Author: Lennart Hohmann
 # Date: 25.01.2024
 #-------------------
@@ -30,7 +30,8 @@ dir.create(data.path)
 infile.1 <- "./data/Parameters/color_palette.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/processed/gene_count_matrix-4.3_processed.RData"
-infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result.RData"
+infile.4 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
+infile.5 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 # output paths
 plot.file <- paste0(output.path,cohort,"_UMAP.pdf")
 #txt.file <- paste0(output.path,cohort,"_UMAP.txt")
@@ -39,12 +40,13 @@ plot.file <- paste0(output.path,cohort,"_UMAP.pdf")
 plot.list <- list() # object to store plots
 plot.parameters <- list() # object to store parameters to plot base R plots again later
 txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
-#-------------------
-start.time <- Sys.time()
 
 #######################################################################
 # load data
 #######################################################################
+
+# sample IDs
+sampleIDs <- unname(unlist(loadRData(infile.5)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]))
 
 # load palette
 color.palette <- loadRData(infile.1)[c("LumA","LumB","Basal")]
@@ -52,40 +54,28 @@ color.palette <- loadRData(infile.1)[c("LumA","LumB","Basal")]
 # processed count data
 normCounts <- loadRData(infile.3)
 
+# processed count data
+FPKM.dat <- loadRData(infile.4)
+FPKM.dat <- FPKM.dat[sampleIDs]
+
 # annotation # ggf. add prolif, SR, IR metagene scores for annatation tracks
 anno <- loadRData(infile.2)
-anno <- anno[anno$Follow.up.cohort == TRUE,]
-anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
+anno <- anno[anno$Follow.up.cohort == TRUE, c("Sample","NCN.PAM50")]
+anno <- anno[anno$Sample %in% sampleIDs, ]
+#anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")] # here
 #all.equal(anno$Sample,colnames(assay(normCounts))) # same order
-# DE res
-res <- loadRData(infile.4)
 
 #######################################################################
-# DE results
+# UMAP based on FPKM data; all genes
 #######################################################################
 
-# add bonferroni correction as well
-res$Bonf.LumA <- p.adjust(res$PValue.LumA, method = "bonferroni")
-res$Bonf.LumB <- p.adjust(res$PValue.LumB, method = "bonferroni")
+# checks same order
+all.equal(anno$Sample,colnames(FPKM.dat)) # no
+FPKM.dat <- FPKM.dat[anno$Sample]
+all.equal(anno$Sample,colnames(FPKM.dat)) # yes
 
-# check results
-FC_cutoff <- log2(2) # log2(3)
-padj_method <- "FDR" #"Bonf"
-DEGs.Basal_vs_LumA <- rownames(subset(
-  res, get(paste0(padj_method,".LumA")) < 0.05 & abs(logFC.LumA) > FC_cutoff))
-DEGs.Basal_vs_LumB <- rownames(subset(
-  res, get(paste0(padj_method,".LumB")) < 0.05 & abs(logFC.LumB) > FC_cutoff))
-
-#######################################################################
-# UMAP based on genes that are distinct for both comparisons
-#######################################################################
-
-# Basal_vs_All: include genes that are distinct for both comparisons
-normCounts.Basal_vs_All <- assay(normCounts)[
-  intersect(DEGs.Basal_vs_LumA, DEGs.Basal_vs_LumB),]
-
-# transpose data so each row is a sample
-umap.dat <- umap(t(normCounts.Basal_vs_All))
+# each row is a sample
+umap.dat <- umap(t(FPKM.dat))
 umap.dat.plot <- as.data.frame(umap.dat$layout)
 # add metadata
 umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)]
@@ -94,29 +84,7 @@ umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
      pch = 16,
-     main = paste0("UMAP Basal-like core DEGs n=", nrow(normCounts.Basal_vs_All)), 
-     xlab = "UMAP1", ylab = "UMAP2")
-legend("bottomright", legend = names(color.palette), col = color.palette, 
-       pch = 16)
-
-plot <- recordPlot()
-plot.list <- append(plot.list, list(plot))
-
-#######################################################################
-# UMAP based on all filtered genes
-#######################################################################
-
-# transpose data so each row is a sample
-umap.dat <- umap(t(assay(normCounts)))
-umap.dat.plot <- as.data.frame(umap.dat$layout)
-# add metadata
-umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)]
-
-# plot
-plot(umap.dat.plot$V1, umap.dat.plot$V2, 
-     col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
-     pch = 16,
-     main = paste0("UMAP all filtered genes n=",nrow(assay(normCounts))), 
+     main = paste0("FPKM UMAP all filtered genes n=",nrow(FPKM.dat)), 
      xlab = "UMAP1", ylab = "UMAP2")
 legend("topright", legend = names(color.palette), col = color.palette, 
        pch = 16)
@@ -125,8 +93,11 @@ plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
 
 #######################################################################
-# UMAP based on top 5000 varying genes
+# UMAP based on count data; all filtered genes
 #######################################################################
+
+anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")] # here
+all.equal(anno$Sample,colnames(assay(normCounts))) # same order
 
 # transpose data so each row is a sample
 umap.dat <- umap(t(assay(normCounts)))
@@ -138,7 +109,7 @@ umap.dat.plot$PAM50 <- anno$NCN.PAM50[match(rownames(umap.dat.plot),anno$Sample)
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$PAM50, levels = names(color.palette))],
      pch = 16,
-     main = paste0("UMAP all filtered genes n=",nrow(assay(normCounts))), 
+     main = paste0("Count UMAP all filtered genes n=",nrow(assay(normCounts))), 
      xlab = "UMAP1", ylab = "UMAP2")
 legend("topright", legend = names(color.palette), col = color.palette, 
        pch = 16)
