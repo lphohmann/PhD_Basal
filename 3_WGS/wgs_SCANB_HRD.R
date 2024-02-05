@@ -28,7 +28,6 @@ infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 infile.4 <- "./data/Parameters/color_palette.RData"
-
 # output paths
 plot.file <- paste0(output.path,cohort,"_waterfall_ERpHER2nBasal.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
@@ -42,11 +41,12 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-
+# check which samples passed QC
 wgs.sum <- read_excel(infile.2, sheet = "Summary")
+#View(wgs.sum)
 sign.rearr <- read_excel(infile.2, sheet = "RearrangmentSigs")
 sign.mut <- read_excel(infile.2, sheet = "SBSsigs")
-wgs.hrd <- read_excel(infile.2, sheet = "HRDetect")
+
 # convert SCANB to proportion per sample
 mut.scanb <- as.data.frame(t(apply(t(mut.scanb),2,function(x) (x/sum(x, na.rm=TRUE))))) 
 
