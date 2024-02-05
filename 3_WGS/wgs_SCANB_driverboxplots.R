@@ -32,7 +32,7 @@ infile.4 <- "./data/BASIS/3_WGS/raw/Supplementary Table 14.Driver.Events.By.Muta
 infile.5 <- "data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
 infile.6 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 # output paths
-plot.file <- paste0(output.path,cohort,"_waterfall_ERpHER2nBasal.pdf")
+plot.file <- paste0(output.path,cohort,"_boxplot_ERpHER2nBasal.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
 # storing objects 

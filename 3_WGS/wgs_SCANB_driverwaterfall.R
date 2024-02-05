@@ -31,6 +31,7 @@ infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/SCANB/3_WGS/raw/Project2_Basal_like_Drivers_22Jan24_ForJohan.xlsx"
 infile.4 <- "./data/BASIS/3_WGS/raw/Supplementary Table 14.Driver.Events.By.Mutation.Type.01052015.v2.xlsx"
 infile.5 <- "data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
+infile.6 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 # output paths
 plot.file <- paste0(output.path,cohort,"_waterfall_ERpHER2nBasal.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
@@ -48,7 +49,7 @@ txt.out <- c() # object to store text output, if the output is not in string for
 sampleIDs <- unname(unlist(loadRData(infile.1)[c("ERpHER2n_Basal")]))
 
 # load IDkey and correct sampleIDs -> ask Johan for key 
-id.key <- loadRData("./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData")
+id.key <- loadRData(infile.6)
 id.key <- id.key[c("Tumour","Specimen_id")]
 
 # wgs QC 
