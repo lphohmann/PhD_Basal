@@ -26,3 +26,14 @@ cbind.fill <- function(...) {
 # "not in" operator 
 ################################################################################
 '%!in%' <- function(x,y)!('%in%'(x,y))
+
+################################################################################
+# get stats
+################################################################################
+
+get_stats <- function(vec) {
+  mean <- mean(vec, na.rm=TRUE)
+  median <- median(vec, na.rm=TRUE)
+  sd <- sd(vec, na.rm=TRUE)
+  return(c("mean"=mean, "median"=median, "sd"=sd))
+}

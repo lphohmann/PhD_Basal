@@ -294,3 +294,10 @@ names(kat.basis) <- sapply(list(names(kat.basis)),
 trace(ggforest, edit = TRUE)
 # stop using updated function
 untrace(ggforest)
+
+
+
+# when defining function with required arguments
+save(..., list = character(),
+     file = stop("'file' must be specified"),
+     ascii = FALSE, version = NULL)

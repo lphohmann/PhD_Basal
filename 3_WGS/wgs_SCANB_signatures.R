@@ -32,7 +32,7 @@ infile.4 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RD
 infile.5 <- "./data/Parameters/color_palette.RData"
 # output paths
 plot.file <- paste0(output.path,cohort,"_signatures.pdf")
-#txt.file <- paste0(output.path,cohort,"_i.txt")
+txt.file <- paste0(output.path,cohort,"_signatures.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -117,13 +117,34 @@ sign.dat <- rbind(sign.scanb,sign.basis)
 #######################################################################
 # plot
 #######################################################################
-
+#sig="RS2"
 for (sig in common.sigs) {
-  #sig="RS2"
+  
+  txt.out <- append(txt.out, c("\n",sig,"\n",
+                               "\n###########################################\n"))
+  
   # sig data
   luma.dat <- sign.dat[sign.dat$PAM50=="LumA",sig]
   lumb.dat <- sign.dat[sign.dat$PAM50=="LumB",sig]
   basal.dat <- sign.dat[sign.dat$PAM50=="Basal",sig]
+  
+  # statistics
+  # summary statistics
+  basal.stats <- get_stats(basal.dat)
+  luma.stats <- get_stats(luma.dat)
+  lumb.stats <- get_stats(lumb.dat)
+  
+  txt.out <- append(txt.out, c("Basal\n",capture.output(basal.stats), "\n",
+                               "LumA\n",capture.output(luma.stats), "\n",
+                               "LumB\n",capture.output(lumb.stats),
+                               "\n###########################################\n"))
+  
+  # mann whitney u tests
+  luma.res <- wilcox.test(basal.dat, luma.dat)
+  lumb.res <- wilcox.test(basal.dat, lumb.dat)
+  
+  txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
   
   # plot
   plot.par <- list(
@@ -132,13 +153,6 @@ for (sig in common.sigs) {
     names = names(color.palette),
     ylab = "proportion",
     main = sig)
-  # boxplot(plot_parameters$data, 
-  #         col = plot_parameters$col,
-  #         names = plot_parameters$names,
-  #         ylab = plot_parameters$ylab,
-  #         main = plot_parameters$main)
-  # plot <- recordPlot()
-  # plot.new()
   plot.parameters <- append(plot.parameters, list(plot.par))
 
 }

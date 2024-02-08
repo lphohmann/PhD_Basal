@@ -1,4 +1,4 @@
-# Script: Driver mutation waterfallplot in SCAN-B
+# Script: Driver mutation waterfallplot in SCAN-B and output sumarized driver data to file
 # Author: Lennart Hohmann
 # Date: 30.01.2024
 #-------------------
@@ -30,9 +30,10 @@ infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/SCANB/3_WGS/raw/Project2_Basal_like_Drivers_22Jan24_ForJohan.xlsx"
 infile.4 <- "./data/BASIS/3_WGS/raw/Supplementary Table 14.Driver.Events.By.Mutation.Type.01052015.v2.xlsx"
-infile.5 <- "data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
+infile.5 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
 infile.6 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 # output paths
+outfile.1 <- paste0(data.path,"drivermutations_ERpHER2nBasal.RData")
 plot.file <- paste0(output.path,cohort,"_waterfall_ERpHER2nBasal.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
@@ -116,6 +117,7 @@ driv.df <- rbind(driv.indel[c("Sample","VD_Gene","VC")],
       driv.amp[c("Sample","VD_Gene","VC")],
       driv.rearr)
 names(driv.df) <- c("sample", "gene", "variant_class")
+save(driv.df, file= outfile.1)
 
 #######################################################################
 # plot waterfall
