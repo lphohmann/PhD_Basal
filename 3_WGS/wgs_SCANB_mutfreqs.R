@@ -98,7 +98,7 @@ pam50.counts <- table(
 # genes to plot/test
 genes <- c("TP53","MYC","PIK3CA","BRCA2","ESR1")
 for (gene in genes) {
-  print(gene)
+  #print(gene)
   txt.out <- append(txt.out, c("\n",gene,"\n",
                                "\n###########################################\n"))
   
@@ -130,7 +130,7 @@ for (gene in genes) {
     col = color.palette,
     ylim=c(0,100),
     main=gene,
-    ylab="Mutation frequency")
+    ylab="Mutation frequency (%)")
   plot.parameters <- append(plot.parameters, list(plot.par))
 }
 
