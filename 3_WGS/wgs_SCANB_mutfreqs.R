@@ -96,9 +96,9 @@ pam50.counts <- table(
 #######################################################################
 
 # genes to plot/test
-genes <- c("TP53","MYC","PIK3CA")
+genes <- c("TP53","MYC","PIK3CA","BRCA2","ESR1")
 for (gene in genes) {
-  
+  print(gene)
   txt.out <- append(txt.out, c("\n",gene,"\n",
                                "\n###########################################\n"))
   
@@ -106,17 +106,19 @@ for (gene in genes) {
   gene.dat <- as.data.frame(table(driv.dat[driv.dat$gene==gene,]$PAM50))
   row.names(gene.dat) <- gene.dat$Var1
   gene.dat$Var1 <- NULL
-  gene.dat$Not_mutated <- pam50.counts - gene.dat$Freq
+  gene.dat$Not_mutated <- pam50.counts[row.names(gene.dat)] - gene.dat$Freq
   names(gene.dat) <- c("Mutated","Not_Mutated")
-  gene.mut.freqs <- (gene.dat$Mutated / pam50.counts)*100
+  gene.mut.freqs <- (gene.dat$Mutated / pam50.counts[row.names(gene.dat)])*100
   
   # statistics
   txt.out <- append(txt.out, c("\n",capture.output(gene.mut.freqs), "\n",
                                "\n###########################################\n"))
   
   # mann whitney u tests
-  luma.res <- fisher.test(gene.dat[c("Basal","LumA"),])
-  lumb.res <- fisher.test(gene.dat[c("Basal","LumB"),])
+  luma.res <- if(sum(is.na(gene.dat[c("Basal","LumA"),]))==0) {
+    fisher.test(gene.dat[c("Basal","LumA"),]) } else {"NA"}
+  lumb.res <- if(sum(is.na(gene.dat[c("Basal","LumB"),]))==0) {
+    fisher.test(gene.dat[c("Basal","LumB"),]) } else {"NA"}
   
   txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
   txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
