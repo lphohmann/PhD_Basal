@@ -1,6 +1,6 @@
-# Script: Plotting CNA in SCAN-B
+# Script: Plotting genome wide CNA Frequencies in SCAN-B 
 # Author: Lennart Hohmann
-# Date: 19.01.2024
+# Date: 11.02.2024
 #-------------------
 # empty environment 
 rm(list=ls())
@@ -13,12 +13,7 @@ cohort <- "SCANB"
 source("./scripts/src/general_functions.R")
 #source("./scripts/3_WGS/src/wgs_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(ggplot2,
-               tidyverse,
-               reshape2,
-               #library(data.table)
-               purrr,
-               readxl,
+pacman::p_load(
                IRanges,
                GenomicFeatures,
                TxDb.Hsapiens.UCSC.hg38.knownGene,
@@ -36,7 +31,8 @@ dir.create(data.path)
 #-------------------
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/Parameters/color_palette.RData"
+infile.2 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
+
 #infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
 # output paths
 #outfile.1 <- ""
@@ -51,6 +47,15 @@ txt.out <- c() # object to store text output, if the output is not in string for
 #######################################################################
 # load data
 #######################################################################
+
+# load Basal ids
+basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
+
+# load ASCAT gene data
+ascat.dat <- loadRData(infile.2)
+names(ascat.dat) <- gsub("\\..*", "", names(ascat.dat))
+ascat.dat <- ascat.dat[names(ascat.dat) %in% basal.ids]
+
 
 
 #######################################################################
