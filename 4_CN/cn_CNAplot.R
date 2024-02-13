@@ -31,12 +31,16 @@ dir.create(data.path)
 #-------------------
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
+infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
+infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
+infile.4 <- "./data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv"
+infile.5 <- "./data/Parameters/color_palette.RData"
+
 
 #infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
 # output paths
 #outfile.1 <- ""
-#plot.file <- paste0(output.path,cohort,"_i.pdf")
+plot.file <- paste0(output.path,cohort,"_CNAprofile.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
 # storing objects 
@@ -48,73 +52,196 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
+color.palette <- loadRData(infile.5)[c("LumA","LumB","Basal")]
+
 # load Basal ids
 basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
 
-# load ASCAT gene data
-ascat.dat <- loadRData(infile.2)
-names(ascat.dat) <- gsub("\\..*", "", names(ascat.dat))
-ascat.dat <- ascat.dat[names(ascat.dat) %in% basal.ids]
+# load
+gl.freqs <- loadRData(infile.2)
 
-
+#basis.anno <- loadRData(infile.3)
+#basis.anno <- basis.anno[basis.anno$ClinicalGroup == "ERposHER2neg" & basis.anno$PAM50_AIMS %in% c("LumA","LumB"),c("sample_name","PAM50_AIMS")]
 
 #######################################################################
-# add center position for later plotting; or do in different script?
+# add genome center position for genes
 #######################################################################
-# why do i need that
 
-# chr lengths
-# get chr lengths to get genome positions of probes (excluding chr X)
-chr.lengths <- as.data.frame(read.table(file = infile.3, sep = '\t', header = FALSE))[1:22,] %>% 
-  dplyr::rename(chr=V1,length=V2) %>% 
-  mutate(genome = cumsum(as.numeric(length))) %>% 
-  mutate(genome = lag(genome,default = 0)) # lag by 1 position (cause I have to add the length of the previous chr to the probe positions (0 for chr1 probes))
-chr.lengths$chr <- as.numeric(gsub('^.{3}','',chr.lengths$chr))
+# Read data from file
+chr.lengths <- as.data.frame(read.table(file = infile.4, sep = '\t', header = FALSE))[1:23, ]
 
+# Rename columns
+names(chr.lengths) <- c("Chr", "length")
 
-# add center position
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% mutate_at(c("chr","start","end"), as.numeric)
-  centerPos.vec <- apply(df, 1, function(row) {
-    gene.length <- as.numeric(row[["end"]]) - as.numeric(row[["start"]])
-    centerPos <- as.numeric(row[["start"]]) + (gene.length/2)
-    return(centerPos)
-  })
-  df$centerPos <- centerPos.vec
-  df <- df %>% dplyr::relocate(centerPos, .after=chr)
-  return(df)
-})
+# Create 'genome' column
+chr.lengths$genome <- cumsum(as.numeric(chr.lengths$length)) # lag by 1 position (cause I have to add the length of the previous chr to the probe positions (0 for chr1 probes))
 
+# Shift 'genome' column by one row
+chr.lengths$genome <- c(0, chr.lengths$genome[-nrow(chr.lengths)])
 
-final.names <- c("gene","chr","start","end","CNA","LOH","cnnLOH","Amp","HomDel","sample")
+chr.lengths[chr.lengths$Chr=="chrX",]$Chr <- "chr23"
+chr.lengths$Chr <- as.numeric(gsub('^.{3}','',chr.lengths$Chr))
 
-final.df <- data.frame(matrix(nrow = 0, ncol = length(final.names), 
-                              dimnames = list(NULL, final.names)))
-View(rbind(final.df,gene.res))
+# add center pos
+gl.freqs[c("chr","start","end")] <- lapply(gl.freqs[c("chr","start","end")], as.numeric)
+gl.freqs$centerPos <- (gl.freqs$start + gl.freqs$end) / 2
 
 # convert to genome position
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% 
-    mutate_at(c("chr","start","end"), as.numeric) %>% 
-    # add new chr genome position column
-    mutate(genome = 0) %>% 
-    # update the genome col to fill in the actual chr positions
-    rows_update(chr.lengths[c("chr","genome")]) %>% 
-    # add a column with the genome position of each probe
-    mutate(Genome_pos = centerPos + genome) %>% 
-    relocate(c(genome,Genome_pos), .after=centerPos) %>% 
-    dplyr::select(-c(genome))
-  return(df)
-})
+gl.freqs$genome <- chr.lengths$genome[match(gl.freqs$chr,chr.lengths$Chr)]
 
-# remove start and end
-cn.list <- lapply(cn.list, function(df) {
-  df <- df %>% 
-    dplyr::select(-c(start, end))
-  return(df)
-})
+# Add a column with the genome position of each probe
+gl.freqs$Genome_pos <- gl.freqs$centerPos + gl.freqs$genome
 
-#save(cn.list,
-#     file = scanb.gene.cna)
+###############################################################################
+# plot: all profiles without points
+###############################################################################
 
-cn.scanb.list <- loadRData(scanb.gene.cna)
+pdf(file = plot.file, height = 21.0, width = 72.0)
+
+plot <- ggplot() +  
+  ggtitle("Genome-wide frequency of gain/loss CN alterations") +
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$LumA_Gain, 
+    color = "LumA"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$LumA_Loss, 
+    color = "LumA"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$LumB_Gain, 
+    color = "LumB"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$LumB_Loss,  
+    color = "LumB"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$Basal_Loss,  
+    color = "Basal"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$Basal_Gain,  
+    color = "Basal"),size=4) + 
+  scale_colour_manual(name="Subtype", values = color.palette) + 
+  geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
+             linetype="dashed",size=1) + 
+  scale_x_continuous(name="Genome position (chromosome)",
+                     breaks=chr.lengths$genome, 
+                     labels=as.character(1:23),
+                     limits = c(0,max(chr.lengths$genome)), #+50000000
+                     expand = c(0, 0)) +
+  scale_y_continuous(name="Alteration frequency (%)", # \n Loss          Gain", # \n Loss & G
+                     breaks=c(seq(-100,100,25)),
+                     labels=c(100,75,50,25,0,25,50,75,100),
+                     expand = c(0, 0),
+                     limits = c(-100,100)) +
+  theme_bw() +
+  theme(text=element_text(size=30),
+        legend.title = element_blank(),
+        axis.title.y = element_text(vjust = 0.5),
+        legend.position = c(0.97, 0.95),
+        panel.border = element_blank(), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black",linewidth=2),
+        axis.ticks = element_line(colour = "black", linewidth = 2),
+        axis.ticks.length=unit(0.5, "cm")) + #legend.position = "none") +
+  annotate(x=min(gl.freqs$Genome_pos)+30000000,
+           y=c(-50,50), label=c("Loss","Gain"), 
+           geom="text", angle=90, hjust=0.5, 
+           size=9, colour=c("black","black")) 
+print(plot)
+dev.off()
+# ###############################################################################
+# # signif gene data
+# ###############################################################################
+# 
+# # prep dat
+# gene.test.df <- loadRData("data/COMBINED/4_CN/processed/CNA_genelevel.RData")
+# genes.AG <- gene.freqs %>% 
+#   filter(gene %in% gene.test.df[gene.test.df$LumA.Gain.padj<=0.05,]$gene) %>% 
+#   mutate(y = ifelse(
+#     freq.gain.luma>freq.gain.her2e,freq.gain.luma,freq.gain.her2e)) #pick what is higher luma or her2e
+# genes.BG <- gene.freqs %>% 
+#   filter(gene %in% gene.test.df[gene.test.df$LumB.Gain.padj<=0.05,]$gene) %>% 
+#   mutate(y = ifelse(
+#     freq.gain.lumb>freq.gain.her2e,freq.gain.lumb,freq.gain.her2e))
+# 
+# genes.AL <- gene.freqs %>% 
+#   filter(gene %in% gene.test.df[gene.test.df$LumA.Loss.padj<=0.05,]$gene) %>% 
+#   mutate(y = ifelse(
+#     freq.loss.luma<freq.loss.her2e,freq.loss.luma,freq.loss.her2e))
+# genes.BL <- gene.freqs %>% 
+#   filter(gene %in% gene.test.df[gene.test.df$LumB.Loss.padj<=0.05,]$gene) %>% 
+#   mutate(y = ifelse(
+#     freq.loss.lumb<freq.loss.her2e,freq.loss.lumb,freq.loss.her2e))
+# 
+# 
+# ###############################################################################
+# # plot: all profiles with points
+# ###############################################################################
+# 
+# #pdf(file = paste(output.path,cohort,"_GLsubtypeprofiles.pdf", sep =""), height = 21.0, width = 72.0)
+# 
+# plot <- ggplot() +  
+#   ggtitle("Genome-wide frequency of gain/loss CN alterations") +
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.gain.luma)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.gain.luma),]$freq.gain.luma, 
+#     color = "LUMA"),size=4) + 
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.loss.luma)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.loss.luma),]$freq.loss.luma, 
+#     color = "LUMA"),size=4) + 
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.gain.lumb)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.gain.lumb),]$freq.gain.lumb, 
+#     color = "LUMB"),size=4) + 
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.loss.lumb)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.loss.lumb),]$freq.loss.lumb, 
+#     color = "LUMB"),size=4) + 
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.gain.her2e)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.gain.her2e),]$freq.gain.her2e, 
+#     color = "HER2E"),size=4) + 
+#   geom_line(aes(
+#     x = cn.data[which(!is.na(cn.data$freq.loss.her2e)),]$Genome_pos, 
+#     y = cn.data[!is.na(cn.data$freq.loss.her2e),]$freq.loss.her2e, 
+#     color = "HER2E"),size=4) + 
+#   scale_colour_manual(name="Subtype", values = c("HER2E"="#d334eb", "LUMA"="#2176d5", "LUMB"="#34c6eb")) + 
+#   geom_point(aes(x = genes.AG$Genome_pos, y = genes.AG$y), size=12) +
+#   geom_point(aes(x = genes.AL$Genome_pos, y = genes.AL$y), size=12) +
+#   geom_point(aes(x = genes.BG$Genome_pos, y = genes.BG$y), size=12, colour="red") +
+#   geom_point(aes(x = genes.BL$Genome_pos, y = genes.BL$y), size=12, colour="red") +
+#   geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
+#              linetype="dashed",size=1) +
+#   scale_x_continuous(name="Genome position (chromosome)",
+#                      breaks=chr.lengths$chrbreaks, 
+#                      labels=as.character(1:22),
+#                      limits = c(0,max(chr.lengths$genome)), #+50000000
+#                      expand = c(0, 0)) +
+#   scale_y_continuous(name="Alteration frequency (%)", # \n Loss          Gain", # \n Loss & G
+#                      breaks=c(seq(-100,100,25)),
+#                      labels=c(100,75,50,25,0,25,50,75,100),
+#                      expand = c(0, 0),
+#                      limits = c(-100,100)) +
+#   theme_bw() +
+#   theme(text=element_text(size=30),
+#         legend.title = element_blank(),
+#         axis.title.y = element_text(vjust = 0.5),
+#         legend.position = c(0.97, 0.95),
+#         panel.border = element_blank(), 
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         axis.line = element_line(colour = "black",linewidth=2),
+#         axis.ticks = element_line(colour = "black", linewidth = 2),
+#         axis.ticks.length=unit(0.5, "cm")) + #legend.position = "none") +
+#   annotate(x=min(cn.data$Genome_pos)+30000000,
+#            y=c(-50,50), label=c("Loss","Gain"), 
+#            geom="text", angle=90, hjust=0.5, 
+#            size=9, colour=c("black","black")) 
+# print(plot)
+# 

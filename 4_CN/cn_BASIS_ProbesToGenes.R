@@ -36,7 +36,7 @@ infile.2 <- "./data/BASIS/4_CN/raw/LumB_CollectedFrequencyData.RData"
 #infile.3 <- 
 
 # output paths
-outfile.1 <- paste0(data.path,"ASCAT_genelevel.RData.RData")
+outfile.1 <- paste0(data.path,"ProbeGeneMap.RData.RData")
 #plot.file <- paste0(output.path,cohort,"_i.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
@@ -130,13 +130,14 @@ probe.positions$Gene_symbol <- lapply(probe.positions$Gene_symbol,
 cn.basis.mapped <- merge(cn.basis,probe.positions[c("reporterId", "Gene_symbol")],by="reporterId") 
 
 # filter NA rows
-cn.basis.mapped <- cn.basis.mapped[which(!is.na(cn.basis.mapped$Gene_symbol)),]
+#cn.basis.mapped <- cn.basis.mapped[which(!is.na(cn.basis.mapped$Gene_symbol)),]
 
-cn.basis.mapped <- cn.basis.mapped[c("Gene_symbol","LumA_Gain",
-                                     "LumA_Loss","LumB_Gain","LumB_Loss")]
+#cn.basis.mapped <- cn.basis.mapped[c("Gene_symbol","LumA_Gain",
+#                                     "LumA_Loss","LumB_Gain","LumB_Loss")]
 
+cn.basis.mapped<-cn.basis.mapped[c("reporterId","Gene_symbol")]
 # save
-save(cnfile, 
-     file = )
+save(cn.basis.mapped, 
+     file = outfile.1)
 
 
