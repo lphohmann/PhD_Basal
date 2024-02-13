@@ -61,7 +61,7 @@ ascat.df.scanb <- t(ascat.df.scanb)
 ascat.df.scanb <- cbind(ascat.list[[1]][c("gene","chr","start","end")],ascat.df.scanb)
 #View(ascat.df.scanb)
 
-# get data format: Gene # GainFreq # LossFreq
+# get freqs
 gene.CNA.freqs <- ascat.df.scanb
 # calc loss/gain freqs per group
 gene.CNA.freqs$freqloss.Basal <- apply(
@@ -73,6 +73,21 @@ gene.CNA.freqs$freqgain.Basal <- apply(
     length(which(x==1))/ncol(gene.CNA.freqs[,5:ncol(gene.CNA.freqs)]))*100)
 
 gene.CNA.freqs <- gene.CNA.freqs[c("gene","chr","start","end","freqloss.Basal","freqgain.Basal")]
+
+#######################################################################
+# load BASIS data and save files
+#######################################################################
+
+luma.ids
+lumb.ids
+
+# load ASCAT gene data
+#ascat.list <- loadRData(infile.2)
+#names(ascat.list) <- gsub("\\..*", "", names(ascat.list))
+#ascat.list <- ascat.list[names(ascat.list) %in% basal.ids]
+
+# get data format: gene sample1 sample2 ... 
+
 
 #######################################################################
 # load BASIS data and save files
