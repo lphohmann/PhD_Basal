@@ -7,7 +7,7 @@ rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
-cohort <- "SCANB"
+#cohort <- "SCANB"
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
@@ -26,12 +26,10 @@ dir.create(data.path)
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
-infile.3 <- "./data/BASIS/4_CN/raw/CNA_genelevel_all.RData"
-infile.4 <- "./data/BASIS/4_CN/raw/LumA_CollectedFrequencyData.RData"
-infile.5 <- "./data/BASIS/4_CN/raw/LumB_CollectedFrequencyData.RData"
-infile.6 <- "./data/BASIS/4_CN/processed/ProbeGeneMap.RData.RData"
-
-#infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
+infile.7 <- "./data/BASIS/3_WGS/processed/ASCAT_genelevel.RData"
+infile.8 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
+infile.9 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
+infile.10 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 # output paths
 outfile.1 <- paste0(data.path,"CNA_genelevel_all.RData")
 outfile.2 <- paste0(data.path,"CNA_GLFreqs_all.RData")
@@ -44,91 +42,129 @@ outfile.2 <- paste0(data.path,"CNA_GLFreqs_all.RData")
 #txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
 
 #######################################################################
-# load SCANB data
+# load SCANB data - Basal subtype
 #######################################################################
 
 # load Basal ids
 basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
 
 # load ASCAT gene data
-ascat.list <- loadRData(infile.2)
-names(ascat.list) <- gsub("\\..*", "", names(ascat.list))
-ascat.list <- ascat.list[names(ascat.list) %in% basal.ids]
+ascat.list.scanb <- loadRData(infile.2)
+names(ascat.list.scanb) <- gsub("\\..*", "", names(ascat.list.scanb))
+ascat.list.basal <- ascat.list.scanb[names(ascat.list.scanb) %in% basal.ids]
+
+# only include QC PASS samples
+id.key <- loadRData(infile.10)
+id.key <- id.key[c("Tumour","Specimen_id")]
+# wgs QC 
+wgs.sum <- read_excel(infile.9, sheet = "Summary")
+wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
+qc.samples <- wgs.sum$Tumour[-grep("FAIL", wgs.sum$`Final QC`)]
+qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
+ascat.list.basal <- ascat.list.scanb[qc.samples.s]
 
 # get data format: gene sample1 sample2 ... 
-ascat.df.scanb <- do.call(rbind, lapply(ascat.list, function(x) x$CNA))
-ascat.df.scanb <- t(ascat.df.scanb)
-ascat.df.scanb <- cbind(ascat.list[[1]][c("gene","chr","start","end")],ascat.df.scanb)
-#View(ascat.df.scanb)
+ascat.df.basal <- do.call(rbind, lapply(ascat.list.basal, function(x) x$CNA))
+ascat.df.basal <- t(ascat.df.basal)
+ascat.df.basal <- cbind(ascat.list.basal[[1]][c("gene","chr","start","end")],ascat.df.basal)
+#View(ascat.df.basal)
 
 # get freqs
-gene.CNA.freqs <- ascat.df.scanb
+CNA.freqs.basal <- ascat.df.basal
 # calc loss/gain freqs per group
-gene.CNA.freqs$freqloss.Basal <- apply(
-  gene.CNA.freqs[,5:ncol(gene.CNA.freqs)], 1, function(x) (
-    length(which(x==-1))/ncol(gene.CNA.freqs[,5:ncol(gene.CNA.freqs)]))*-100) # i add a minus to make it easier for plotting
+CNA.freqs.basal$freqloss.Basal <- apply(
+  CNA.freqs.basal[,5:ncol(CNA.freqs.basal)], 1, function(x) (
+    length(which(x==-1))/ncol(CNA.freqs.basal[,5:ncol(CNA.freqs.basal)]))*-100) # i add a minus to make it easier for plotting
 
-gene.CNA.freqs$freqgain.Basal <- apply(
-  gene.CNA.freqs[,5:ncol(gene.CNA.freqs)], 1, function(x) (
-    length(which(x==1))/ncol(gene.CNA.freqs[,5:ncol(gene.CNA.freqs)]))*100)
+CNA.freqs.basal$freqgain.Basal <- apply(
+  CNA.freqs.basal[,5:ncol(CNA.freqs.basal)], 1, function(x) (
+    length(which(x==1))/ncol(CNA.freqs.basal[,5:ncol(CNA.freqs.basal)]))*100)
 
-gene.CNA.freqs <- gene.CNA.freqs[c("gene","chr","start","end","freqloss.Basal","freqgain.Basal")]
-
-#######################################################################
-# load BASIS data and save files
-#######################################################################
-
-luma.ids
-lumb.ids
-
-# load ASCAT gene data
-#ascat.list <- loadRData(infile.2)
-#names(ascat.list) <- gsub("\\..*", "", names(ascat.list))
-#ascat.list <- ascat.list[names(ascat.list) %in% basal.ids]
-
-# get data format: gene sample1 sample2 ... 
-
+CNA.freqs.basal <- CNA.freqs.basal[c("gene","chr","start","end","freqloss.Basal","freqgain.Basal")]
 
 #######################################################################
-# load BASIS data and save files
+# load BASIS data - LumA and LumB subtypes
 #######################################################################
 
-ascat.df.basis <- loadRData(infile.3)
-common.genes <- intersect(ascat.df.scanb$gene,ascat.df.basis$gene)
-ascat.df.scanb <- ascat.df.scanb[ascat.df.scanb$gene %in% common.genes,]
-ascat.df.basis <- ascat.df.basis[ascat.df.basis$gene %in% common.genes,]
-ascat.df.basis <- ascat.df.basis[, !names(ascat.df.basis) %in% c("chr", "centerPos", "Genome_pos")]
-ascat.df.all <- merge(ascat.df.scanb,ascat.df.basis,by="gene")
-save(ascat.df.all,file=outfile.1)
+# get relevant sample IDs
+basis.anno <- loadRData(infile.8)
+basis.anno <- basis.anno[basis.anno$ClinicalGroup == "ERposHER2neg" & 
+                           basis.anno$PAM50_AIMS %in% c("LumA","LumB"),
+                         c("sample_name","PAM50_AIMS")]
 
-# freq data
-cn.luma <- loadRData(infile.4)
-cn.luma <- do.call("cbind", list(cn.luma$fData,"LumA_Gain"=cn.luma$CN_Gain,"LumA_Loss"=cn.luma$CN_Loss))
-cn.lumb <- loadRData(infile.5)
-cn.lumb <- do.call("cbind", list(cn.lumb$fData,"LumB_Gain"=cn.lumb$CN_Gain,"LumB_Loss"=cn.lumb$CN_Loss))
-cn.basis <- merge(cn.luma,cn.lumb,by=c("reporterId","chromosome","centerPosition"))
-basis.map <- loadRData(infile.6)
-cn.basis.mapped <- merge(cn.basis,basis.map,by="reporterId") 
+# LumA and B data
+luma.ids <- basis.anno$sample_name[basis.anno$PAM50_AIMS=="LumA"]
+lumb.ids <- basis.anno$sample_name[basis.anno$PAM50_AIMS=="LumB"]
+ascat.list.basis <- loadRData(infile.7)
+ascat.list.luma <- ascat.list.basis[names(ascat.list.basis) %in% luma.ids]
+ascat.list.lumb <- ascat.list.basis[names(ascat.list.basis) %in% lumb.ids]
 
-# filter NA rows
-cn.basis.mapped <- cn.basis.mapped[which(!is.na(cn.basis.mapped$Gene_symbol)),]
+# prep luma files
+ascat.df.luma <- do.call(rbind, lapply(ascat.list.luma, function(x) x$CNA))
+ascat.df.luma <- t(ascat.df.luma)
+ascat.df.luma <- cbind(ascat.list.luma[[1]][c("gene","chr","start","end")],ascat.df.luma)
+# get freqs
+CNA.freqs.luma <- ascat.df.luma
+CNA.freqs.luma$freqloss.LumA <- apply(
+  CNA.freqs.luma[,5:ncol(CNA.freqs.luma)], 1, function(x) (
+    length(which(x==-1))/ncol(CNA.freqs.luma[,5:ncol(CNA.freqs.luma)]))*-100)
+CNA.freqs.luma$freqgain.LumA <- apply(
+  CNA.freqs.luma[,5:ncol(CNA.freqs.luma)], 1, function(x) (
+    length(which(x==1))/ncol(CNA.freqs.luma[,5:ncol(CNA.freqs.luma)]))*100)
+CNA.freqs.luma <- CNA.freqs.luma[c("gene","chr","start","end","freqloss.LumA","freqgain.LumA")]
 
-# 
-common.genes <- intersect(gene.CNA.freqs$gene,cn.basis.mapped$Gene_symbol)
-gene.CNA.freqs <- gene.CNA.freqs[gene.CNA.freqs$gene %in% common.genes,]
-cn.basis.mapped <- cn.basis.mapped[cn.basis.mapped$Gene_symbol %in% common.genes,]
-cn.basis.mapped <- cn.basis.mapped[!duplicated(cn.basis.mapped$Gene_symbol), ]
-names(cn.basis.mapped)[names(cn.basis.mapped) == "Gene_symbol"] <- "gene"
+# prep lumb files
+ascat.df.lumb <- do.call(rbind, lapply(ascat.list.lumb, function(x) x$CNA))
+ascat.df.lumb <- t(ascat.df.lumb)
+ascat.df.lumb <- cbind(ascat.list.lumb[[1]][c("gene","chr","start","end")],ascat.df.lumb)
+# get freqs
+CNA.freqs.lumb <- ascat.df.lumb
+CNA.freqs.lumb$freqloss.LumB <- apply(
+  CNA.freqs.lumb[,5:ncol(CNA.freqs.lumb)], 1, function(x) (
+    length(which(x==-1))/ncol(CNA.freqs.lumb[,5:ncol(CNA.freqs.lumb)]))*-100)
+CNA.freqs.lumb$freqgain.LumB <- apply(
+  CNA.freqs.lumb[,5:ncol(CNA.freqs.lumb)], 1, function(x) (
+    length(which(x==1))/ncol(CNA.freqs.lumb[,5:ncol(CNA.freqs.lumb)]))*100)
+CNA.freqs.lumb <- CNA.freqs.lumb[c("gene","chr","start","end","freqloss.LumB","freqgain.LumB")]
 
-gene.CNA.freqs.all <- merge(gene.CNA.freqs,cn.basis.mapped[c("gene","LumA_Gain",
-                                                             "LumA_Loss","LumB_Gain","LumB_Loss")],
-                            by="gene")
-names(gene.CNA.freqs.all)[names(gene.CNA.freqs.all) == "freqloss.Basal"] <- "Basal_Loss"
-names(gene.CNA.freqs.all)[names(gene.CNA.freqs.all) == "freqgain.Basal"] <- "Basal_Gain"
+#######################################################################
+# prepare and save files
+#######################################################################
 
+# exclude rows with NA
+ascat.df.basal <- ascat.df.basal[complete.cases(ascat.df.basal), ]
+ascat.df.luma <- ascat.df.luma[complete.cases(ascat.df.luma), ]
+ascat.df.lumb <- ascat.df.lumb[complete.cases(ascat.df.lumb), ]
 
-gene.CNA.freqs.all$LumA_Loss <- gene.CNA.freqs.all$LumA_Loss*(-1)
-gene.CNA.freqs.all$LumB_Loss <- gene.CNA.freqs.all$LumB_Loss*(-1)
+# which genes are in common
+common.genes <- intersect(intersect(ascat.df.basal$gene, ascat.df.luma$gene), 
+                          ascat.df.lumb$gene)
 
-save(gene.CNA.freqs.all,file=outfile.2)
+# only include common genes in ASCAT
+ascat.df.basal <- ascat.df.basal[ascat.df.basal$gene %in% common.genes, ]
+ascat.df.luma <- ascat.df.luma[ascat.df.luma$gene %in% common.genes, ]
+ascat.df.lumb <- ascat.df.lumb[ascat.df.lumb$gene %in% common.genes, ]
+
+# only include common genes in frequencies
+CNA.freqs.basal <- CNA.freqs.basal[CNA.freqs.basal$gene %in% common.genes, ]
+CNA.freqs.luma <- CNA.freqs.luma[CNA.freqs.luma$gene %in% common.genes, ]
+CNA.freqs.lumb <- CNA.freqs.lumb[CNA.freqs.lumb$gene %in% common.genes, ]
+
+# save
+subtype.samples <- list("Basal"=colnames(ascat.df.basal)[5:ncol(ascat.df.basal)],
+                        "LumA"=colnames(ascat.df.luma)[5:ncol(ascat.df.luma)],
+                        "LumB"=colnames(ascat.df.lumb)[5:ncol(ascat.df.lumb)])
+# make into one df
+ascat.df.all <- merge(
+  merge(ascat.df.basal,ascat.df.luma[c(1,5:ncol(ascat.df.luma))],by="gene"),
+  ascat.df.lumb[c(1,5:ncol(ascat.df.lumb))],by="gene")
+ascat.save.file <- list("ascat.df.all" = ascat.df.all,
+                        "subtype.samples" = subtype.samples)
+save(ascat.save.file,file=outfile.1)
+
+# make into one df
+CNA.freqs.all <- merge(
+  merge(CNA.freqs.basal,CNA.freqs.luma[c("gene","freqloss.LumA","freqgain.LumA")],by="gene"),
+  CNA.freqs.lumb[c("gene","freqloss.LumB","freqgain.LumB")], by="gene")
+save(CNA.freqs.all,file=outfile.2)
 
