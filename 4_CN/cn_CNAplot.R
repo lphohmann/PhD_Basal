@@ -13,8 +13,7 @@ cohort <- "SCANB"
 source("./scripts/src/general_functions.R")
 #source("./scripts/3_WGS/src/wgs_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(
-               IRanges,
+pacman::p_load(IRanges,
                GenomicFeatures,
                TxDb.Hsapiens.UCSC.hg38.knownGene,
                TxDb.Hsapiens.UCSC.hg19.knownGene,
@@ -30,23 +29,22 @@ data.path <- "./data/SCANB/4_CN/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
-infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
+#infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+#infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
+#infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 infile.4 <- "./data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv"
 infile.5 <- "./data/Parameters/color_palette.RData"
-
-
-#infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
+infile.6 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
+infile.7 <- "./data/SCANB/4_CN/processed/CNA_genetest.RData"
 # output paths
 #outfile.1 <- ""
 plot.file <- paste0(output.path,cohort,"_CNAprofile.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
 # storing objects 
-plot.list <- list() # object to store plots
-plot.parameters <- list() # object to store parameters to plot base R plots again later
-txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
+#plot.list <- list() # object to store plots
+#plot.parameters <- list() # object to store parameters to plot base R plots again later
+#txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
 
 #######################################################################
 # load data
@@ -55,10 +53,10 @@ txt.out <- c() # object to store text output, if the output is not in string for
 color.palette <- loadRData(infile.5)[c("LumA","LumB","Basal")]
 
 # load Basal ids
-basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
+#basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
 
 # load
-gl.freqs <- loadRData(infile.2)
+gl.freqs <- loadRData(infile.6)
 
 #basis.anno <- loadRData(infile.3)
 #basis.anno <- basis.anno[basis.anno$ClinicalGroup == "ERposHER2neg" & basis.anno$PAM50_AIMS %in% c("LumA","LumB"),c("sample_name","PAM50_AIMS")]
@@ -93,7 +91,39 @@ gl.freqs$genome <- chr.lengths$genome[match(gl.freqs$chr,chr.lengths$Chr)]
 gl.freqs$Genome_pos <- gl.freqs$centerPos + gl.freqs$genome
 
 ###############################################################################
-# plot: all profiles without points
+# signif gene data
+###############################################################################
+
+# prep dat
+gene.test.df <- loadRData(infile.7)
+# subset signif genes
+genes.AG <- gl.freqs[gl.freqs$gene %in% 
+                       gene.test.df[gene.test.df$LumA.Gain.padj <= 0.05, ]$gene, ]
+
+genes.AL <- gl.freqs[gl.freqs$gene %in% 
+                       gene.test.df[gene.test.df$LumA.Loss.padj <= 0.05, ]$gene, ]
+
+genes.BG <- gl.freqs[gl.freqs$gene %in% 
+                       gene.test.df[gene.test.df$LumB.Gain.padj <= 0.05, ]$gene, ]
+
+genes.BL <- gl.freqs[gl.freqs$gene %in% 
+                       gene.test.df[gene.test.df$LumB.Loss.padj <= 0.05, ]$gene, ]
+
+# Pick higher frequency between freq.gain.luma and freq.gain.her2e
+genes.AG$y <- with(genes.AG,ifelse(freqgain.LumA > freqgain.Basal,
+                                   freqgain.LumA, freqgain.Basal))
+                   
+genes.AL$y <- with(genes.AL,ifelse(freqloss.LumA < freqloss.Basal,
+                                   freqloss.LumA, freqloss.Basal))
+
+genes.BG$y <- with(genes.BG,ifelse(freqgain.LumB > freqgain.Basal,
+                                   freqgain.LumB, freqgain.Basal))
+
+genes.BL$y <- with(genes.BL,ifelse(freqloss.LumB < freqloss.Basal,
+                                   freqloss.LumB, freqloss.Basal))
+
+###############################################################################
+# plot: all profiles with points
 ###############################################################################
 
 pdf(file = plot.file, height = 21.0, width = 72.0)
@@ -102,29 +132,33 @@ plot <- ggplot() +
   ggtitle("Genome-wide frequency of gain/loss CN alterations") +
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$LumA_Gain, 
+    y = gl.freqs$freqgain.LumA, 
     color = "LumA"),size=4) + 
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$LumA_Loss, 
+    y = gl.freqs$freqloss.LumA, 
     color = "LumA"),size=4) + 
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$LumB_Gain, 
+    y = gl.freqs$freqgain.LumB, 
     color = "LumB"),size=4) + 
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$LumB_Loss,  
+    y = gl.freqs$freqloss.LumB,  
     color = "LumB"),size=4) + 
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$Basal_Loss,  
+    y = gl.freqs$freqgain.Basal,  
     color = "Basal"),size=4) + 
   geom_line(aes(
     x = gl.freqs$Genome_pos, 
-    y = gl.freqs$Basal_Gain,  
+    y = gl.freqs$freqloss.Basal,  
     color = "Basal"),size=4) + 
   scale_colour_manual(name="Subtype", values = color.palette) + 
+  geom_point(aes(x = genes.AG$Genome_pos, y = genes.AG$y), size=12) +
+  geom_point(aes(x = genes.AL$Genome_pos, y = genes.AL$y), size=12) +
+  geom_point(aes(x = genes.BG$Genome_pos, y = genes.BG$y), size=12, colour="red") +
+  geom_point(aes(x = genes.BL$Genome_pos, y = genes.BL$y), size=12, colour="red") +
   geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
@@ -132,7 +166,7 @@ plot <- ggplot() +
                      labels=as.character(1:23),
                      limits = c(0,max(chr.lengths$genome)), #+50000000
                      expand = c(0, 0)) +
-  scale_y_continuous(name="Alteration frequency (%)", # \n Loss          Gain", # \n Loss & G
+  scale_y_continuous(name="Alteration frequency (%)",
                      breaks=c(seq(-100,100,25)),
                      labels=c(100,75,50,25,0,25,50,75,100),
                      expand = c(0, 0),
@@ -154,94 +188,3 @@ plot <- ggplot() +
            size=9, colour=c("black","black")) 
 print(plot)
 dev.off()
-# ###############################################################################
-# # signif gene data
-# ###############################################################################
-# 
-# # prep dat
-# gene.test.df <- loadRData("data/COMBINED/4_CN/processed/CNA_genelevel.RData")
-# genes.AG <- gene.freqs %>% 
-#   filter(gene %in% gene.test.df[gene.test.df$LumA.Gain.padj<=0.05,]$gene) %>% 
-#   mutate(y = ifelse(
-#     freq.gain.luma>freq.gain.her2e,freq.gain.luma,freq.gain.her2e)) #pick what is higher luma or her2e
-# genes.BG <- gene.freqs %>% 
-#   filter(gene %in% gene.test.df[gene.test.df$LumB.Gain.padj<=0.05,]$gene) %>% 
-#   mutate(y = ifelse(
-#     freq.gain.lumb>freq.gain.her2e,freq.gain.lumb,freq.gain.her2e))
-# 
-# genes.AL <- gene.freqs %>% 
-#   filter(gene %in% gene.test.df[gene.test.df$LumA.Loss.padj<=0.05,]$gene) %>% 
-#   mutate(y = ifelse(
-#     freq.loss.luma<freq.loss.her2e,freq.loss.luma,freq.loss.her2e))
-# genes.BL <- gene.freqs %>% 
-#   filter(gene %in% gene.test.df[gene.test.df$LumB.Loss.padj<=0.05,]$gene) %>% 
-#   mutate(y = ifelse(
-#     freq.loss.lumb<freq.loss.her2e,freq.loss.lumb,freq.loss.her2e))
-# 
-# 
-# ###############################################################################
-# # plot: all profiles with points
-# ###############################################################################
-# 
-# #pdf(file = paste(output.path,cohort,"_GLsubtypeprofiles.pdf", sep =""), height = 21.0, width = 72.0)
-# 
-# plot <- ggplot() +  
-#   ggtitle("Genome-wide frequency of gain/loss CN alterations") +
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.gain.luma)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.gain.luma),]$freq.gain.luma, 
-#     color = "LUMA"),size=4) + 
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.loss.luma)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.loss.luma),]$freq.loss.luma, 
-#     color = "LUMA"),size=4) + 
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.gain.lumb)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.gain.lumb),]$freq.gain.lumb, 
-#     color = "LUMB"),size=4) + 
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.loss.lumb)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.loss.lumb),]$freq.loss.lumb, 
-#     color = "LUMB"),size=4) + 
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.gain.her2e)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.gain.her2e),]$freq.gain.her2e, 
-#     color = "HER2E"),size=4) + 
-#   geom_line(aes(
-#     x = cn.data[which(!is.na(cn.data$freq.loss.her2e)),]$Genome_pos, 
-#     y = cn.data[!is.na(cn.data$freq.loss.her2e),]$freq.loss.her2e, 
-#     color = "HER2E"),size=4) + 
-#   scale_colour_manual(name="Subtype", values = c("HER2E"="#d334eb", "LUMA"="#2176d5", "LUMB"="#34c6eb")) + 
-#   geom_point(aes(x = genes.AG$Genome_pos, y = genes.AG$y), size=12) +
-#   geom_point(aes(x = genes.AL$Genome_pos, y = genes.AL$y), size=12) +
-#   geom_point(aes(x = genes.BG$Genome_pos, y = genes.BG$y), size=12, colour="red") +
-#   geom_point(aes(x = genes.BL$Genome_pos, y = genes.BL$y), size=12, colour="red") +
-#   geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
-#              linetype="dashed",size=1) +
-#   scale_x_continuous(name="Genome position (chromosome)",
-#                      breaks=chr.lengths$chrbreaks, 
-#                      labels=as.character(1:22),
-#                      limits = c(0,max(chr.lengths$genome)), #+50000000
-#                      expand = c(0, 0)) +
-#   scale_y_continuous(name="Alteration frequency (%)", # \n Loss          Gain", # \n Loss & G
-#                      breaks=c(seq(-100,100,25)),
-#                      labels=c(100,75,50,25,0,25,50,75,100),
-#                      expand = c(0, 0),
-#                      limits = c(-100,100)) +
-#   theme_bw() +
-#   theme(text=element_text(size=30),
-#         legend.title = element_blank(),
-#         axis.title.y = element_text(vjust = 0.5),
-#         legend.position = c(0.97, 0.95),
-#         panel.border = element_blank(), 
-#         panel.grid.major = element_blank(),
-#         panel.grid.minor = element_blank(),
-#         axis.line = element_line(colour = "black",linewidth=2),
-#         axis.ticks = element_line(colour = "black", linewidth = 2),
-#         axis.ticks.length=unit(0.5, "cm")) + #legend.position = "none") +
-#   annotate(x=min(cn.data$Genome_pos)+30000000,
-#            y=c(-50,50), label=c("Loss","Gain"), 
-#            geom="text", angle=90, hjust=0.5, 
-#            size=9, colour=c("black","black")) 
-# print(plot)
-# 
