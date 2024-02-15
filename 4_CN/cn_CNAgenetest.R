@@ -1,4 +1,4 @@
-# Script: Test singificnace of CNA freqs for each gene, create file
+# Script: Test significnace of CNA freqs for each gene, create file
 # Author: Lennart Hohmann
 # Date: 11.02.2024
 #-------------------
@@ -24,13 +24,10 @@ data.path <- "./data/SCANB/4_CN/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
-
-#infile.3 <- "data/BASIS/4_CN/raw/GRCh38_EBV.chrom.sizes.tsv" # move ot basal project
+infile.1 <- "./data/SCANB/4_CN/processed/CNA_genelevel_all.RData"
+infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
 # output paths
-outfile.1 <- paste0(data.path,"CNA_Basal.RData")
-outfile.2 <- paste0(data.path,"CNA_Basal_GLFreqs.RData")
+outfile.1 <- paste0(data.path,"CNA_genetest.RData")
 #plot.file <- paste0(output.path,cohort,"_i.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
@@ -43,35 +40,97 @@ outfile.2 <- paste0(data.path,"CNA_Basal_GLFreqs.RData")
 # load data
 #######################################################################
 
-# load Basal ids
-basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
-
-# load ASCAT gene data
-ascat.list <- loadRData(infile.2)
-names(ascat.list) <- gsub("\\..*", "", names(ascat.list))
-ascat.list <- ascat.list[names(ascat.list) %in% basal.ids]
+ascat.df.all <- loadRData(infile.1)[["ascat.df.all"]]
+ascat.df.all[,2:ncol(ascat.df.all)] <- lapply(ascat.df.all[,2:ncol(ascat.df.all)], as.numeric)
+basal.ids <- loadRData(infile.1)[["subtype.samples"]][["Basal"]]
+luma.ids <- loadRData(infile.1)[["subtype.samples"]][["LumA"]]
+lumb.ids <- loadRData(infile.1)[["subtype.samples"]][["LumB"]]
 
 #######################################################################
-# output: GainFreq and LossFreq for each gene
+# test genes Loss and Gain freqs
 #######################################################################
 
-# get data format: gene sample1 sample2 ... 
-ascat.df <- do.call(rbind, lapply(ascat.list, function(x) x$CNA))
-ascat.df <- t(ascat.df)
-ascat.df <- cbind(ascat.list[[1]][c("gene","chr","start","end")],ascat.df)
-#View(ascat.df)
-save(ascat.df,file=outfile.1)
+LumA.Loss.pval <- c()
+LumA.Gain.pval <- c()
+LumB.Loss.pval <- c()
+LumB.Gain.pval <- c()
 
-# get data format: Gene # GainFreq # LossFreq
-# calc loss/gain freqs per group
-ascat.df$freqloss.Basal <- apply(
-  ascat.df[,5:ncol(ascat.df)], 1, function(x) (
-    length(which(x==-1))/ncol(ascat.df[,5:ncol(ascat.df)]))*-100) # i add a minus to make it easier for plotting
+pb = txtProgressBar(min = 0, max = length(ascat.df.all$gene), initial = 0, style = 3)
+for(i in 1:length(ascat.df.all$gene)) {
+  setTxtProgressBar(pb,i)
+  # gene metadata
+  gene <- ascat.df.all$gene[i]
+  gene.anno <- ascat.df.all[ascat.df.all$gene==gene,
+                            c("gene","chr","start","end")]
+  
+  # # gene CNA data with PAM50 sample annotation
+  # gene.dat <- as.data.frame(
+  #   t(ascat.df.all[ascat.df.all$gene==gene,
+  #                  !names(ascat.df.all) %in% c("gene","chr","start","end")]))
+  # gene.dat$sampleID <- rownames(gene.dat)
+  # gene.dat$PAM50 <- ifelse(gene.dat$sampleID %in% basal.ids, "Basal",
+  #                         ifelse(gene.dat$sampleID %in% luma.ids, "LumA",
+  #                                ifelse(gene.dat$sampleID %in% lumb.ids, "LumB", NA)))
+  # gene.dat$sampleID <- NULL
+  # names(gene.dat)[1] <- "gene.CNA"
+  
+  #View(gene.dat)
+  basal.dat <- unlist(ascat.df.all[ascat.df.all$gene==gene,basal.ids])
+  luma.dat <- unlist(ascat.df.all[ascat.df.all$gene==gene,luma.ids])
+  lumb.dat <- unlist(ascat.df.all[ascat.df.all$gene==gene,lumb.ids])
 
-ascat.df$freqgain.Basal <- apply(
-  ascat.df[,5:ncol(ascat.df)], 1, function(x) (
-    length(which(x==1))/ncol(ascat.df[,5:ncol(ascat.df)]))*100)
+  comp.list <- list("LumA"=luma.dat,"LumB"=lumb.dat)
+  
+  for(j in 1:length(comp.list)) {
+    comp.dat <- comp.list[[j]] 
+    comp.group <- names(comp.list)[j]
+    
+    gain.tbl <- data.frame(basal=c(sum(basal.dat==1),sum(basal.dat!=1)), 
+                           comp=c(sum(comp.dat==1),sum(comp.dat!=1)), 
+                           row.names = c("gain","no_gain"))
+    
+    loss.tbl <- data.frame(basal=c(sum(basal.dat==-1),sum(basal.dat!=-1)), 
+                           comp=c(sum(comp.dat==-1),sum(comp.dat!=-1)), 
+                           row.names = c("loss","no_loss"))
+    
+    # test gain
+    gain.pval <- fisher.test(gain.tbl)$p.value
+    # test loss
+    loss.pval <- fisher.test(loss.tbl)$p.value
+    
+    # save in vectors
+    if (comp.group=="LumA") {
+      LumA.Gain.pval[i] <- gain.pval
+      LumA.Loss.pval[i] <- loss.pval
+    } else if (comp.group=="LumB") {
+      LumB.Gain.pval[i] <- gain.pval
+      LumB.Loss.pval[i] <- loss.pval
+    }
+    
+  }
+  close(pb)
+}
 
-gene.CNA.freqs <- ascat.df[c("gene","chr","start","end","freqloss.Basal","freqgain.Basal")]
 
-save(gene.CNA.freqs,file=outfile.2)
+
+gene.test.df <- data.frame("gene"=ascat.df.all$gene, 
+                           "LumA.Gain.pval"=LumA.Gain.pval,
+                           "LumB.Gain.pval"=LumB.Gain.pval,
+                           "LumA.Loss.pval"=LumA.Loss.pval,
+                           "LumB.Loss.pval"=LumB.Loss.pval)
+
+
+#save(gene.test.df, file= signif.genes)
+
+# adjust pval
+gene.test.df$LumA.Gain.padj <- p.adjust(gene.test.df$LumA.Gain.pval, method = "fdr") #fdr
+gene.test.df$LumB.Gain.padj <- p.adjust(gene.test.df$LumB.Gain.pval, method = "fdr")
+gene.test.df$LumA.Loss.padj <- p.adjust(gene.test.df$LumA.Loss.pval, method = "fdr")
+gene.test.df$LumB.Loss.padj <- p.adjust(gene.test.df$LumB.Loss.pval, method = "fdr")
+#View(gene.test.df)
+#length(gene.test.df[gene.test.df$LumA.Gain.padj<=0.05,]$gene)
+#length(gene.test.df[gene.test.df$LumB.Gain.padj<=0.05,]$gene)
+#length(gene.test.df[gene.test.df$LumA.Loss.padj<=0.05,]$gene)
+#length(gene.test.df[gene.test.df$LumB.Loss.padj<=0.05,]$gene)
+
+save(gene.test.df, file= outfile.1)

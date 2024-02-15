@@ -167,4 +167,3 @@ CNA.freqs.all <- merge(
   merge(CNA.freqs.basal,CNA.freqs.luma[c("gene","freqloss.LumA","freqgain.LumA")],by="gene"),
   CNA.freqs.lumb[c("gene","freqloss.LumB","freqgain.LumB")], by="gene")
 save(CNA.freqs.all,file=outfile.2)
-
