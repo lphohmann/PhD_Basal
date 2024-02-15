@@ -123,7 +123,7 @@ genes.BL$y <- with(genes.BL,ifelse(freqloss.LumB < freqloss.Basal,
                                    freqloss.LumB, freqloss.Basal))
 
 ###############################################################################
-# plot: all profiles with points
+# plot: all profiles with points 
 ###############################################################################
 
 pdf(file = plot.file, height = 21.0, width = 72.0)
@@ -159,6 +159,79 @@ plot <- ggplot() +
   geom_point(aes(x = genes.AL$Genome_pos, y = genes.AL$y), size=12) +
   geom_point(aes(x = genes.BG$Genome_pos, y = genes.BG$y), size=12, colour="red") +
   geom_point(aes(x = genes.BL$Genome_pos, y = genes.BL$y), size=12, colour="red") +
+  geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
+             linetype="dashed",size=1) + 
+  scale_x_continuous(name="Genome position (chromosome)",
+                     breaks=chr.lengths$genome, 
+                     labels=as.character(1:23),
+                     limits = c(0,max(chr.lengths$genome)), #+50000000
+                     expand = c(0, 0)) +
+  scale_y_continuous(name="Alteration frequency (%)",
+                     breaks=c(seq(-100,100,25)),
+                     labels=c(100,75,50,25,0,25,50,75,100),
+                     expand = c(0, 0),
+                     limits = c(-100,100)) +
+  theme_bw() +
+  theme(text=element_text(size=30),
+        legend.title = element_blank(),
+        axis.title.y = element_text(vjust = 0.5),
+        legend.position = c(0.97, 0.95),
+        panel.border = element_blank(), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black",linewidth=2),
+        axis.ticks = element_line(colour = "black", linewidth = 2),
+        axis.ticks.length=unit(0.5, "cm")) + #legend.position = "none") +
+  annotate(x=min(gl.freqs$Genome_pos)+30000000,
+           y=c(-50,50), label=c("Loss","Gain"), 
+           geom="text", angle=90, hjust=0.5, 
+           size=9, colour=c("black","black")) 
+print(plot)
+#dev.off()
+
+###############################################################################
+# plot: all profiles with points specific to Basal
+###############################################################################
+
+# subset signif genes
+genes.all.gain <- gl.freqs[gl.freqs$gene %in% 
+                             intersect(genes.AG$gene,genes.BG$gene), ]
+genes.all.loss <- gl.freqs[gl.freqs$gene %in% 
+                             intersect(genes.AL$gene,genes.BL$gene), ]
+
+# Pick higher frequency between freq.gain.luma and freq.gain.her2e
+genes.all.gain$y <- apply(genes.all.gain[, c("freqgain.Basal", "freqgain.LumA", "freqgain.LumB")], 1, max)
+genes.all.loss$y <- apply(genes.all.loss[, c("freqloss.Basal", "freqloss.LumA", "freqloss.LumB")], 1, min)
+
+plot <- ggplot() +  
+  ggtitle("Genome-wide frequency of gain/loss CN alterations") +
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqgain.LumA, 
+    color = "LumA"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqloss.LumA, 
+    color = "LumA"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqgain.LumB, 
+    color = "LumB"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqloss.LumB,  
+    color = "LumB"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqgain.Basal,  
+    color = "Basal"),size=4) + 
+  geom_line(aes(
+    x = gl.freqs$Genome_pos, 
+    y = gl.freqs$freqloss.Basal,  
+    color = "Basal"),size=4) + 
+  scale_colour_manual(name="Subtype", values = color.palette) + 
+  geom_point(aes(x = genes.all.gain$Genome_pos, y = genes.all.gain$y), size=12) +
+  geom_point(aes(x = genes.all.loss$Genome_pos, y = genes.all.loss$y), size=12) +
   geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
