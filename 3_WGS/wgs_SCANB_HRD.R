@@ -28,6 +28,8 @@ infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 infile.4 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 infile.5 <- "./data/Parameters/color_palette.RData"
+#infile.7 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
+#hrd.dat <- read.table(infile.7, sep = ",", header = TRUE)
 # output paths
 plot.file <- paste0(output.path,cohort,"_HRD.pdf")
 txt.file <- paste0(output.path,cohort,"_HRD.txt")

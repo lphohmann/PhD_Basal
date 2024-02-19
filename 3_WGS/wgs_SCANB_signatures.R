@@ -25,11 +25,13 @@ dir.create(data.path)
 #-------------------
 # input paths
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+#infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 infile.4 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 infile.5 <- "./data/Parameters/color_palette.RData"
+infile.6 <- "./data/SCANB/3_WGS/raw/2024_02_11_snv_sig_refsig_errperc20_correct_exposures_combined_502.csv"
+infile.9 <- "./data/SCANB/3_WGS/raw/2024_02_14_SCANB_ERpos_rearr_sig_502.csv"
 # output paths
 plot.file <- paste0(output.path,cohort,"_signatures.pdf")
 txt.file <- paste0(output.path,cohort,"_signatures.txt")
@@ -40,7 +42,7 @@ plot.parameters <- list() # object to store parameters to plot base R plots agai
 txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
 
 #######################################################################
-# load data
+# load new data
 #######################################################################
 
 # load IDkey and correct sampleIDs -> ask Johan for key 
@@ -56,13 +58,24 @@ wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
 qc.samples <- wgs.sum$Tumour[-grep("FAIL", wgs.sum$`Final QC`)]
 qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
 
-# sampleid as rownames
-sign.rearr <- as.data.frame(read_excel(infile.2, sheet = "RearrangmentSigs"))
-rownames(sign.rearr) <- sign.rearr$Sample
-sign.rearr$Sample <- NULL
-sign.mut <- as.data.frame(read_excel(infile.2, sheet = "SBSsigs"))
+
+sign.mut <- read.table(infile.6, sep = ",", header = TRUE)
+sign.mut <- sign.mut[c("Lund.tumour.id","SBS1","SBS2","SBS3","SBS5",
+                     "SBS8","SBS13","SBS17","SBS18","SBS127", 
+                     "unassigned","SBS6")]
+names(sign.mut)[1] <- "Sample"
+sign.mut$Sample <- gsub("\\..*", "", sign.mut$Sample)
 rownames(sign.mut) <- sign.mut$Sample
 sign.mut$Sample <- NULL
+
+sign.rearr <- read.table(infile.9, sep = ",", header = TRUE)
+sign.rearr <- sign.rearr[c("Lund.tumour.id","RefSigR2", "RefSigR4","RefSigR6a",
+                         "RefSigR1","RefSigR5","RefSigR6b","RefSigR8","RefSigR3","RefSigR11",
+                         "unassigned")]
+names(sign.rearr)[1] <- "Sample"
+sign.rearr$Sample <- gsub("\\..*", "", sign.rearr$Sample)
+rownames(sign.rearr) <- sign.rearr$Sample
+sign.rearr$Sample <- NULL
 
 # add 6a and 6b
 sign.rearr$RefSigR6 <- sign.rearr$RefSigR6a + sign.rearr$RefSigR6b
@@ -72,15 +85,17 @@ sign.rearr$RefSigR6b <- NULL
 # convert SCANB to proportion per sample
 sign.rearr <- as.data.frame(apply(sign.rearr,1,function(x) (x/sum(x, na.rm=TRUE))))
 sign.rearr[is.na(sign.rearr)] <- 0
+sign.rearr <- sign.rearr[row.names(sign.rearr) != "unassigned",]
+
 sign.mut <- as.data.frame(apply(sign.mut,1,function(x) (x/sum(x, na.rm=TRUE))))
 sign.mut[is.na(sign.mut)] <- 0
+sign.mut <- sign.mut[row.names(sign.mut) != "unassigned",]
 
 # merge
 sign.scanb <- as.data.frame(merge(t(sign.rearr), t(sign.mut), by = "row.names", all.x = TRUE))
+names(sign.scanb)[1] <- "Sample"
 
-# correct ids
-sign.scanb$Sample <- id.key$Specimen_id[match(sign.scanb$Row.names,id.key$Tumour)]
-sign.scanb$Row.names <- NULL
+# select basal samples
 sign.scanb <- sign.scanb[sign.scanb$Sample %in% qc.samples.s,]
 
 #######################################################################
