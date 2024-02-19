@@ -26,10 +26,8 @@ dir.create(data.path)
 # input paths
 infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 infile.3 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
-infile.4 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 infile.5 <- "./data/Parameters/color_palette.RData"
-#infile.7 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
-#hrd.dat <- read.table(infile.7, sep = ",", header = TRUE)
+infile.7 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
 # output paths
 plot.file <- paste0(output.path,cohort,"_HRD.pdf")
 txt.file <- paste0(output.path,cohort,"_HRD.txt")
@@ -43,10 +41,6 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-# load IDkey and correct sampleIDs -> ask Johan for key 
-id.key <- loadRData(infile.4)
-id.key <- id.key[c("Tumour","Specimen_id")]
-
 # load palette
 color.palette <- loadRData(infile.5)[c("LumA","LumB","Basal")]
 
@@ -54,14 +48,11 @@ color.palette <- loadRData(infile.5)[c("LumA","LumB","Basal")]
 wgs.sum <- read_excel(infile.2, sheet = "Summary")
 wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
 qc.samples <- wgs.sum$Tumour[-grep("FAIL", wgs.sum$`Final QC`)]
-qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
 
 # sampleid as rownames
-hrd.dat <- as.data.frame(read_excel(infile.2, sheet = "HRDetect"))
-hrd.dat <- hrd.dat[hrd.dat$Sample %in% qc.samples,]
-hrd.dat$Sample <- id.key$Specimen_id[match(hrd.dat$Sample,id.key$Tumour)]
-rownames(hrd.dat) <- hrd.dat$Sample
-hrd.dat$Sample <- NULL
+hrd.dat <- read.table(infile.7, sep = ",", header = TRUE)
+hrd.dat <- hrd.dat[hrd.dat$Tumour %in% qc.samples,]
+hrd.dat$Lund.tumour.id <- gsub("\\..*", "", hrd.dat$Lund.tumour.id)
 
 # HRD calling
 hrd.dat$HRDetect <- ifelse(hrd.dat$Probability >= 0.7,"HRD-high","HRD-low")
