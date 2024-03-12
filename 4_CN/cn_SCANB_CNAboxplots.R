@@ -30,6 +30,7 @@ dir.create(data.path)
 infile.5 <- "./data/Parameters/color_palette.RData"
 infile.6 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
 infile.7 <- "./data/SCANB/4_CN/processed/CNA_genetest.RData"
+infile.8 <- "./data/SCANB/4_CN/processed/CNA_genelevel_all.RData"
 # output paths
 #outfile.1 <- ""
 plot.file <- paste0(output.path,cohort,"_CNAboxplots.pdf")
@@ -44,7 +45,7 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-color.palette <- loadRData(infile.5)[c("LumA","LumB")]
+color.palette <- loadRData(infile.5)[c("LumA","LumB","Basal")]
 
 # load Basal ids
 #basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
@@ -119,12 +120,75 @@ txt.out <- append(txt.out, c("LumA Gain: n=",
 
 plot.par <- list(
   data = list(LumA=luma.dat,LumB=lumb.dat), 
-  col = color.palette, 
-  names = names(color.palette),
+  col = color.palette[c("LumA","LumB")], 
+  names = names(color.palette[c("LumA","LumB")]),
   ylab = "CNAFreq diff to Basal",
   main = "Abs. diff in CNA Freq to Basal")
 
 plot.parameters <- append(plot.parameters, list(plot.par))
+
+################################################################################
+# CN boxplot of % genome altered
+################################################################################
+
+cna.df <- loadRData(infile.8)[[1]]
+row.names(cna.df) <- cna.df$gene
+sample.ids <- loadRData(infile.8)[[2]]
+
+# sample # %altered
+basal.dat <- as.vector(apply(cna.df[sample.ids$Basal],2,function(x) {
+  (sum(x!=0)/length(x))*100}))
+luma.dat <-  as.vector(apply(cna.df[sample.ids$LumA],2,function(x) {
+  (sum(x!=0)/length(x))*100}))
+lumb.dat <-  as.vector(apply(cna.df[sample.ids$LumB],2,function(x) {
+  (sum(x!=0)/length(x))*100}))
+
+##
+txt.out <- append(txt.out, c("\nGenome altered (%) compared to Basal\n",
+                             "\n###########################################\n"))
+
+txt.out <- append(txt.out, c("Basal: mean=", round(mean(basal.dat),2),"\n",
+                             "LumA: mean=", round(mean(luma.dat),2),"\n",
+                             "LumB: mean=", round(mean(lumb.dat),2),"\n",
+                             "\n###########################################\n"))
+
+# mann whitney u tests
+luma.res <- wilcox.test(basal.dat, luma.dat) 
+lumb.res <- wilcox.test(basal.dat, lumb.dat)
+
+txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
+txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
+
+plot.par <- list(
+  data = list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
+  col = color.palette, 
+  names = names(color.palette),
+  ylab = "Genome altered (%)",
+  main = "Genome altered")
+
+plot.parameters <- append(plot.parameters, list(plot.par))
+
+################################################################################
+
+# num singif gener per chromosme
+a.dat <- rbind(genes.AG,genes.AL)
+a.dat$chr <- as.numeric(a.dat$chr)
+a.tbl <- table(a.dat$chr)
+
+barplot(height=a.tbl, # num vec with gener per chromosome 
+        names=names(a.tbl), 
+        main="LumA: Signif genes by chromosme",
+        ylab="Signif altered genes")
+
+b.dat <- rbind(genes.BG,genes.BL)
+b.dat$chr <- as.numeric(b.dat$chr)
+b.tbl <- table(b.dat$chr)
+
+barplot(height=b.tbl, # num vec with gener per chromosome 
+        names=names(b.tbl), 
+        main="LumB: Signif genes by chromosme",
+        ylab="Signif altered genes")
+
 
 ################################################################################
 ################################################################################

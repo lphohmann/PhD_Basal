@@ -1,6 +1,7 @@
 # Script: Plotting genome wide CNA Frequencies in SCAN-B 
 # Author: Lennart Hohmann
 # Date: 11.02.2024
+#TODO: check chr23, exclude?
 #-------------------
 # empty environment 
 rm(list=ls())
@@ -159,12 +160,12 @@ plot <- ggplot() +
   geom_point(aes(x = genes.AL$Genome_pos, y = genes.AL$y), size=12) +
   geom_point(aes(x = genes.BG$Genome_pos, y = genes.BG$y), size=12, colour="red") +
   geom_point(aes(x = genes.BL$Genome_pos, y = genes.BL$y), size=12, colour="red") +
-  geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
+  geom_vline(xintercept = chr.lengths$genome,
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
                      breaks=chr.lengths$genome, 
                      labels=as.character(1:23),
-                     limits = c(0,max(chr.lengths$genome)), #+50000000
+                     limits = c(0,max(chr.lengths$genome)+50000000), #+50000000
                      expand = c(0, 0)) +
   scale_y_continuous(name="Alteration frequency (%)",
                      breaks=c(seq(-100,100,25)),
@@ -232,12 +233,12 @@ plot <- ggplot() +
   scale_colour_manual(name="Subtype", values = color.palette) + 
   geom_point(aes(x = genes.all.gain$Genome_pos, y = genes.all.gain$y), size=12) +
   geom_point(aes(x = genes.all.loss$Genome_pos, y = genes.all.loss$y), size=12) +
-  geom_vline(xintercept = chr.lengths$genome[-length(chr.lengths$genome)],
+  geom_vline(xintercept = chr.lengths$genome, #[-length(chr.lengths$genome)]
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
                      breaks=chr.lengths$genome, 
                      labels=as.character(1:23),
-                     limits = c(0,max(chr.lengths$genome)), #+50000000
+                     limits = c(0,max(chr.lengths$genome)+50000000), #+50000000
                      expand = c(0, 0)) +
   scale_y_continuous(name="Alteration frequency (%)",
                      breaks=c(seq(-100,100,25)),

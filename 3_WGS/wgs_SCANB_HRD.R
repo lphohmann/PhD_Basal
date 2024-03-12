@@ -2,7 +2,7 @@
 # Author: Lennart Hohmann
 # Date: 10.02.2024
 #-------------------
-# empty environment 
+# empty environment
 rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
@@ -85,7 +85,7 @@ pam50.counts <- table(hrd.all$PAM50)
 # plot and stats
 #######################################################################
 
-# genes to plot/test
+#  to plot/test
 
 txt.out <- append(txt.out, c("\nHRD Frequency\n",
                              "\n###########################################\n"))

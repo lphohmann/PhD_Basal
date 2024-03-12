@@ -58,7 +58,6 @@ wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
 qc.samples <- wgs.sum$Tumour[-grep("FAIL", wgs.sum$`Final QC`)]
 qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
 
-
 sign.mut <- read.table(infile.6, sep = ",", header = TRUE)
 sign.mut <- sign.mut[c("Lund.tumour.id","SBS1","SBS2","SBS3","SBS5",
                      "SBS8","SBS13","SBS17","SBS18","SBS127", 
@@ -81,6 +80,12 @@ sign.rearr$Sample <- NULL
 sign.rearr$RefSigR6 <- sign.rearr$RefSigR6a + sign.rearr$RefSigR6b
 sign.rearr$RefSigR6a <- NULL
 sign.rearr$RefSigR6b <- NULL
+
+# which samples have <25 rearr snvs
+sign.rearr.exclude <- sign.rearr
+sign.rearr.exclude <- sign.rearr.exclude[qc.samples.s,]
+sign.rearr.exclude$sum <-apply(sign.rearr.exclude,1,sum) #exclude and redo
+sign.rearr.exclude <- row.names(sign.rearr.exclude[sign.rearr.exclude$sum < 25,])
 
 # convert SCANB to proportion per sample
 sign.rearr <- as.data.frame(apply(sign.rearr,1,function(x) (x/sum(x, na.rm=TRUE))))
@@ -117,6 +122,7 @@ colnames(sign.scanb) <- gsub("SBS","S", colnames(sign.scanb))
 common.sigs <- intersect(colnames(sign.scanb),colnames(sign.basis))
 
 # exclude non-shared ones
+rownames.basal <- sign.scanb$Sample
 sign.scanb <- sign.scanb[,common.sigs]
 pam50.basis <- sign.basis$PAM50_AIMS
 sign.basis <- sign.basis[,common.sigs]
@@ -128,6 +134,7 @@ sign.scanb$PAM50 <- "Basal"
 # put together in an object ready for plotting 
 sign.dat <- rbind(sign.scanb,sign.basis)
 #View(sign.dat)
+row.names(sign.dat)[1:length(rownames.basal)] <- rownames.basal
 
 #######################################################################
 # plot
@@ -141,7 +148,11 @@ for (sig in common.sigs) {
   # sig data
   luma.dat <- sign.dat[sign.dat$PAM50=="LumA",sig]
   lumb.dat <- sign.dat[sign.dat$PAM50=="LumB",sig]
-  basal.dat <- sign.dat[sign.dat$PAM50=="Basal",sig]
+  # have to filter samples for rearr signatures below <25
+  if (grepl("RS", sig)) {
+    basal.dat <- sign.dat[sign.dat$PAM50=="Basal",]
+    basal.dat <- basal.dat[!row.names(basal.dat) %in% sign.rearr.exclude,sig]
+  } else { basal.dat <- sign.dat[sign.dat$PAM50=="Basal",sig] }
   
   # statistics
   # summary statistics
