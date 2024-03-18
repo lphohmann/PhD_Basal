@@ -50,3 +50,7 @@ df <- as.data.frame(names(kat))
 df$PAM50 <- all.samples[match(df$`names(kat)`,all.samples$Sample),]$NCN.PAM50
 View(df)
 table(is.na(df$PAM50))
+
+
+
+
