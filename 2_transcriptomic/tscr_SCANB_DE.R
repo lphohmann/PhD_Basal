@@ -1,4 +1,4 @@
-# Script: Differential gene expression analysis in SCAN-B
+# Script: Differential gene expression analysis in SCAN-B based on count data
 # Author: Lennart Hohmann
 # Date: 15.01.2024
 #-------------------
@@ -79,8 +79,9 @@ anno <- anno[anno$Sample %in% names(count.dat),]
 # countTable: samples column, genes rows
 countTable <- count.dat
 # sampleTable: sampleID PAM50 columns
-sampleTable <- anno[c("Sample","NCN.PAM50")]
+sampleTable <- anno[c("Sample","NCN.PAM50","LibraryProtocol")]
 sampleTable$NCN.PAM50 <- as.factor(sampleTable$NCN.PAM50)
+sampleTable$LibraryProtocol <- as.factor(sampleTable$LibraryProtocol)
 # critical that count matrix sample data are in the same order and format
 countTable <- countTable[, sampleTable$Sample]
 identical(colnames(countTable),sampleTable$Sample) # TRUE
@@ -135,9 +136,6 @@ assay(normCounts)[1:5, 1:5]
 # distribution of variance-stabilized counts
 hist(assay(normCounts)) #high requency peaks of 7000000, due to higher sample size?
 
-# save processed count data
-save(normCounts, file=outfile.2)
-
 #######################################################################
 # Visualization of overall gene expression patterns
 #######################################################################
@@ -167,7 +165,7 @@ save(normCounts, file=outfile.2)
 #   Sample = sampleTable$Sample)
 # pcaPlot <- ggplot(
 #   data = pcaDF,
-#   mapping = aes(x = PC1, y = PC2, color = NCN.PAM50, label = Sample)) +
+#   mapping = aes(x = PC1, y = PC2, color = Disease, label = Sample)) +
 #   geom_point(size = 3) +
 #   geom_text_repel(size = 4) +
 #   labs(x = paste0("PC1 (", varExp[1], " %)"), y = paste0("PC2 (", varExp[2], " %)")) +
@@ -175,7 +173,7 @@ save(normCounts, file=outfile.2)
 #   theme(axis.text = element_text(size = 12), legend.text = element_text(size = 10)) +
 #   scale_color_manual(values = brewer.pal(3, "Accent"))
 # print(pcaPlot)
-# ggsave("./output/2_transcriptomic/pca_all.png")
+#ggsave("./output/2_transcriptomic/pca_all.png")
 
 #Remove outliers?
 # countTable <- subset(countTable, select = -C6_T_FF)
@@ -196,6 +194,14 @@ contrastMatrix <- makeContrasts(Basal_vs_LumA = NCN.PAM50Basal - NCN.PAM50LumA,
                                 Basal_vs_LumB = NCN.PAM50Basal - NCN.PAM50LumB,
                                 levels = designMatrix)
 head(contrastMatrix)
+
+# Step 2.5: Correct for different LibraryProtocols
+assay(normCounts) <- removeBatchEffect(assay(normCounts), 
+                                       normCounts$LibraryProtocol, 
+                                       design=designMatrix)
+
+# save processed count data
+save(normCounts, file=outfile.2)
 
 # Step 3: Fit model
 dge <- DGEList(countTable) # creates a DGEList object

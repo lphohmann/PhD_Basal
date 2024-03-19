@@ -16,7 +16,8 @@ if (!require("pacman")) install.packages("pacman")
 pacman::p_load(umap,
                DESeq2,
                edgeR,
-               limma)
+               limma,
+               ggplot2)
 #-------------------
 # set/create output directories
 # for plots
@@ -95,7 +96,7 @@ plot.list <- append(plot.list, list(plot))
 #######################################################################
 # UMAP based on count data; all filtered genes
 #######################################################################
-
+anno <- loadRData(infile.2)
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")] # here
 all.equal(anno$Sample,colnames(assay(normCounts))) # same order
 
@@ -117,6 +118,36 @@ legend("topright", legend = names(color.palette), col = color.palette,
 plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
 
+#######################################################################
+# UMAP based on count data; all filtered genes with RefYear annotation
+#######################################################################
+# anno <- loadRData(infile.2)
+# anno <- anno[anno$Follow.up.cohort == TRUE, c("Sample","ReferenceYear")]
+# anno <- anno[anno$Sample %in% sampleIDs, ]
+# anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","ReferenceYear")] # here
+# all.equal(anno$Sample,colnames(assay(normCounts))) # same order
+# 
+# # transpose data so each row is a sample
+# umap.dat <- umap(t(assay(normCounts)))
+# umap.dat.plot <- as.data.frame(umap.dat$layout)
+# 
+# # add metadata
+# umap.dat.plot$RefYear <- anno$ReferenceYear[match(rownames(umap.dat.plot),anno$Sample)]
+# 
+# # plot
+# ggplot(umap.dat.plot, aes(x = V1, y = V2, color = RefYear)) +
+#   geom_point()
+# 
+# # # Perform PCA
+# # pca_result <- prcomp(data, scale. = TRUE)
+# # 
+# # # Plot PCA
+# # plot(pca_result$x[, 1], pca_result$x[, 2], 
+# #      xlab = "PC1", ylab = "PC2", 
+# #      main = "PCA Plot")
+# 
+# plot <- recordPlot()
+# plot.list <- append(plot.list, list(plot))
 #######################################################################
 #######################################################################
 
