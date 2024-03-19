@@ -1,4 +1,4 @@
-# Script: UMAP based on FPKM and Count data in SCAN-B
+# Script: UMAP based on FPKM and Count data in SCAN-B; and PCA
 # Author: Lennart Hohmann
 # Date: 25.01.2024
 #-------------------
@@ -96,7 +96,7 @@ plot.list <- append(plot.list, list(plot))
 #######################################################################
 # UMAP based on count data; all filtered genes
 #######################################################################
-anno <- loadRData(infile.2)
+
 anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")] # here
 all.equal(anno$Sample,colnames(assay(normCounts))) # same order
 
@@ -119,35 +119,33 @@ plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
 
 #######################################################################
-# UMAP based on count data; all filtered genes with RefYear annotation
+# PCA based on count data
 #######################################################################
-# anno <- loadRData(infile.2)
-# anno <- anno[anno$Follow.up.cohort == TRUE, c("Sample","ReferenceYear")]
-# anno <- anno[anno$Sample %in% sampleIDs, ]
-# anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","ReferenceYear")] # here
-# all.equal(anno$Sample,colnames(assay(normCounts))) # same order
-# 
-# # transpose data so each row is a sample
-# umap.dat <- umap(t(assay(normCounts)))
-# umap.dat.plot <- as.data.frame(umap.dat$layout)
-# 
-# # add metadata
-# umap.dat.plot$RefYear <- anno$ReferenceYear[match(rownames(umap.dat.plot),anno$Sample)]
-# 
-# # plot
-# ggplot(umap.dat.plot, aes(x = V1, y = V2, color = RefYear)) +
-#   geom_point()
-# 
-# # # Perform PCA
-# # pca_result <- prcomp(data, scale. = TRUE)
-# # 
-# # # Plot PCA
-# # plot(pca_result$x[, 1], pca_result$x[, 2], 
-# #      xlab = "PC1", ylab = "PC2", 
-# #      main = "PCA Plot")
-# 
-# plot <- recordPlot()
-# plot.list <- append(plot.list, list(plot))
+
+#Sample PCA
+pcaRes <- prcomp(t(assay(normCounts)))
+varExp <- round(pcaRes$sdev^2 / sum(pcaRes$sdev^2) * 100)
+pcaDF <- data.frame(
+  PC1 = pcaRes$x[, 1],
+  PC2 = pcaRes$x[, 2],
+  Group = anno$NCN.PAM50,
+  Sample = anno$Sample)
+
+# Scatter plot of PC1 and PC2
+plot(pcaDF$PC1, pcaDF$PC2, 
+     col = color.palette[factor(pcaDF$Group, levels = names(color.palette))],
+     pch = 16, cex = 2, 
+     xlab = paste0("PC1 (", varExp[1], " %)"), 
+     ylab = paste0("PC2 (", varExp[2], " %)"), 
+     main = paste0("Count PCA all filtered genes n=",nrow(assay(normCounts))), )
+
+# Add legend
+legend("topright", legend = names(color.palette), col = color.palette, 
+       pch = 16)
+
+plot <- recordPlot()
+plot.list <- append(plot.list, list(plot))
+
 #######################################################################
 #######################################################################
 
