@@ -36,7 +36,7 @@ infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.3 <- "./data/SCANB/2_transcriptomic/raw/gene_count_matrix-4.3.csv"
 # output paths
-outfile.1 <- paste0(data.path,"DE_result.RData")
+outfile.1 <- paste0(data.path,"DE_result_counts.RData")
 outfile.2 <- paste0(data.path,"gene_count_matrix-4.3_processed.RData")
 #plot.file <- paste0(output.path,cohort,"_DE.pdf")
 #txt.file <- paste0(output.path,cohort,"_DE.txt")
@@ -121,8 +121,8 @@ dim(countTable)
 
 # prepare data for QC
 dds <- DESeqDataSetFromMatrix(as.matrix(countTable),
-                              # no intercept, NCN.PAM50 for sample grouping
-                              design = ~ 0 + NCN.PAM50, 
+                              # 
+                              design = ~ LibraryProtocol + NCN.PAM50, 
                               colData = sampleTable)
 
 print(dds)
@@ -186,35 +186,41 @@ hist(assay(normCounts)) #high requency peaks of 7000000, due to higher sample si
 #######################################################################
 
 # Step 1: Define design matrix
-designMatrix <- model.matrix(~ 0 + NCN.PAM50, data = sampleTable)
-designMatrix[1:3,1:3]
+designMatrix <- model.matrix(~ LibraryProtocol + NCN.PAM50, data = sampleTable)
 
+rownames(designMatrix) <- colnames(countTable)
+designMatrix[1:3,]
 # Step 2: Define contrast matrix (Basal vs. LumA and Basal vs. LumB)
-contrastMatrix <- makeContrasts(Basal_vs_LumA = NCN.PAM50Basal - NCN.PAM50LumA,
-                                Basal_vs_LumB = NCN.PAM50Basal - NCN.PAM50LumB,
-                                levels = designMatrix)
-head(contrastMatrix)
+# contrastMatrix <- makeContrasts(Basal_vs_LumA = Intercept - NCN.PAM50LumA,
+#                                 Basal_vs_LumB = Intercept - NCN.PAM50LumB,
+#                                 levels = designMatrix)
+# head(contrastMatrix)
 
-# Step 2.5: Correct for different LibraryProtocols
+#------
+# Step 2.5: Correct for different LibraryProtocols (only for plotting)
 assay(normCounts) <- removeBatchEffect(assay(normCounts), 
                                        normCounts$LibraryProtocol, 
                                        design=designMatrix)
 
 # save processed count data
 save(normCounts, file=outfile.2)
+#------
 
 # Step 3: Fit model
-dge <- DGEList(countTable) # creates a DGEList object
+dge <- DGEList(countTable, group=sampleTable$NCN.PAM50) # creates a DGEList object
 dge <- calcNormFactors(dge) # calculate normalization factors for the raw count data
 dge <- estimateDisp(dge, designMatrix, robust = TRUE) # estimate dispersion (variability)
 # dge object contains normalized counts and dispersion estimates
 fit <- glmQLFit(dge, designMatrix, robust = TRUE) # fit generalized linear model to the data.
 
 # Step 4: Perform hypothesis testing for both groups
-qlf.Basal_vs_LumA <- glmQLFTest(fit, contrast=contrastMatrix[,"Basal_vs_LumA"])
+qlf.Basal_vs_LumA <- glmQLFTest(fit, coef=4)
 res.Basal_vs_LumA <- topTags(qlf.Basal_vs_LumA, n = nrow(countTable))
-qlf.Basal_vs_LumB <- glmQLFTest(fit, contrast=contrastMatrix[,"Basal_vs_LumB"])
+summary(decideTests(qlf.Basal_vs_LumA))
+
+qlf.Basal_vs_LumB <- glmQLFTest(fit, coef=5)
 res.Basal_vs_LumB <- topTags(qlf.Basal_vs_LumB, n = nrow(countTable))
+summary(decideTests(qlf.Basal_vs_LumB))
 
 # Step 5: Compile both comps into one df
 df.a <- res.Basal_vs_LumA$table[c("logFC","PValue","FDR")]

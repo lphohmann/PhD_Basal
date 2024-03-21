@@ -1,4 +1,4 @@
-# Script: Visualizing SCAN-B differential gene expression results
+# Script: Visualizing SCAN-B differential gene expression results from FPKM data
 # Author: Lennart Hohmann
 # Date: 16.01.2024
 #TODO:  add metagene annotation tracks to heatmap
@@ -15,10 +15,8 @@ source("./scripts/src/general_functions.R")
 source("./scripts/2_transcriptomic/src/tscr_functions.R")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2,
+               VennDiagram,
                ggrepel,
-               tidyverse,
-               DESeq2,
-               edgeR,
                RColorBrewer,
                pheatmap,
                limma,
@@ -35,15 +33,17 @@ data.path <- "./data/SCANB/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
+infile.0 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.1 <- "./data/Parameters/color_palette.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/processed/gene_count_matrix-4.3_processed.RData"
-infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result.RData"
-infile.5 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores.RData"
+infile.3 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
+infile.4 <- "./data/SCANB/2_transcriptomic/processed/DE_result_counts.RData"
+infile.5 <- "./data/SCANB/2_transcriptomic/processed/DE_result_FPKM.RData"
+infile.6 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores.RData"
 # output paths
 #outfile.1 <- #paste0(data.path,"....RData") # excel file with enrichment results
-plot.file <- paste0(output.path,cohort,"_DE_visualization.pdf")
-#txt.file <- paste0(output.path,cohort,"_DE_visualization.txt")
+plot.file <- paste0(output.path,cohort,"_DE_visualization_FPKM.pdf")
+#txt.file <- paste0(output.path,cohort,"_DE_visualization_FPKM.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -56,17 +56,19 @@ plot.parameters <- list() # object to store parameters to plot base R plots agai
 
 # load palette
 color.palette <- loadRData(infile.1)[c("LumA","LumB","Basal")]
+sample.ids <- loadRData(infile.0)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
 
 # processed count data
-normCounts <- loadRData(infile.3)
+fpkm.dat <- loadRData(infile.3)
+fpkm.dat <- fpkm.dat[colnames(fpkm.dat) %in% unname(unlist(sample.ids))]
 
 # annotation # ggf. add prolif, SR, IR metagene scores for annatation tracks
 anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
-anno <- anno[anno$Sample %in% colnames(assay(normCounts)), c("Sample","NCN.PAM50")]
+anno <- anno[anno$Sample %in% unname(unlist(sample.ids)), c("Sample","NCN.PAM50")]
 
 # add metagene scores to the annotation
-mg.scores <- as.data.frame(t(loadRData(infile.5)))
+mg.scores <- as.data.frame(t(loadRData(infile.6)))
 mg.scores$Sample <- rownames(mg.scores)
 rownames(mg.scores) <- NULL
 anno <- merge(anno, mg.scores, by = "Sample", all.x = TRUE)
@@ -75,89 +77,96 @@ anno <- merge(anno, mg.scores, by = "Sample", all.x = TRUE)
 anno[, sapply(anno, is.numeric)] <- apply(anno[, sapply(anno, is.numeric)], 2, add_labels)
 
 # DE res
-res <- loadRData(infile.4) 
+res.fpkm <- loadRData(infile.5) 
+res.counts <- loadRData(infile.4) 
 
 #######################################################################
 # Check results
 #######################################################################
-
-# add bonferroni correction as well
-res$Bonf.LumA <- p.adjust(res$PValue.LumA, method = "bonferroni")
-res$Bonf.LumB <- p.adjust(res$PValue.LumB, method = "bonferroni")
+#colnames(res.fpkm)
+#colnames(res.counts)
 
 # check results
 # try different cutoffs: select genes where the differential expression 
 # is statistically significant and large enough to be considered biologically meaningful
 FC_cutoff <- log2(2) # log2(3)
-padj_method <- "FDR" #"Bonf"
-DEGs.Basal_vs_LumA <- rownames(subset(
-  res, get(paste0(padj_method,".LumA")) < 0.05 & abs(logFC.LumA) > FC_cutoff))
-DEGs.Basal_vs_LumB <- rownames(subset(
-  res, get(paste0(padj_method,".LumB")) < 0.05 & abs(logFC.LumB) > FC_cutoff))
-length(DEGs.Basal_vs_LumA) 
-length(DEGs.Basal_vs_LumB) 
-length(setdiff(rownames(DEGs.Basal_vs_LumA),rownames(DEGs.Basal_vs_LumB))) 
+fpkm.degs.luma <- rownames(
+  res.fpkm[res.fpkm$Basal.LumA.padj <= 0.05 & abs(res.fpkm$Basal.LumA.logFC) > FC_cutoff,])
+fpkm.degs.lumb <- rownames(
+  res.fpkm[res.fpkm$Basal.LumB.padj <= 0.05 & abs(res.fpkm$Basal.LumB.logFC) > FC_cutoff,])
+counts.degs.luma <- rownames(
+  res.fpkm[res.counts$FDR.LumA <= 0.05 & abs(res.counts$logFC.LumA) > FC_cutoff,])
+counts.degs.lumb <- rownames(
+  res.fpkm[res.counts$FDR.LumB <= 0.05 & abs(res.counts$logFC.LumB) > FC_cutoff,])
 
-# checking further
-hist(res$FDR.LumA,breaks = 100)
-hist(res$Bonf.LumA,breaks = 100)
-nrow(res[res$FDR.LumA <= 0.05,]) 
-nrow(res[res$Bonf.LumA <= 0.05,])
-# conclusions: padj method makes a difference but the logFC cutoff still 
-# results in similar numbers of DEGs with both methods
+length(intersect(fpkm.degs.luma,fpkm.degs.lumb)) 
+length(intersect(counts.degs.luma,counts.degs.lumb)) 
+
+#######################################################################
+# Venn diagram
+#######################################################################
+
+venn.plot <- venn.diagram(
+  x = list(FPKM = intersect(fpkm.degs.luma,fpkm.degs.lumb), Counts = intersect(counts.degs.luma,counts.degs.lumb)),
+  category.names = c("FPKM", "Counts"),
+  filename = NULL
+)
+
+# Plot the Venn diagram
+grid.draw(venn.plot)
 
 #######################################################################
 # Visualize results: Vulcano plots
 #######################################################################
 
 # Basal_vs_LumA
-volcanoPlot.Basal_vs_LumA <- ggplot(res, aes(x = logFC.LumA, 
-                                             y = -log10(get(paste0(padj_method,".LumA"))),
+volcanoPlot.Basal_vs_LumA <- ggplot(res.fpkm, aes(x = Basal.LumA.logFC, 
+                                             y = -log10(Basal.LumA.padj),
                                              color = ifelse(
-                                               get(paste0(padj_method,".LumA")) < 0.05 & 
-                                                 abs(logFC.LumA) > FC_cutoff, 
+                                               Basal.LumA.padj < 0.05 & 
+                                                 abs(Basal.LumA.logFC) > FC_cutoff, 
                                                "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
   ylab(expression("Adjusted P value, -Log"[10]*"")) +
-  ylim(c(0,240)) +
+  #ylim(c(0,240)) +
   geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
   scale_colour_manual(values = c("darkred", "grey", "steelblue")) + 
-  geom_text_repel(aes(x = logFC.LumA, y = -log10(get(paste0(padj_method,".LumA"))), 
-                      label = rownames(res[order(
-                        -abs(res$logFC.LumA)), ][1:10,]),
+  geom_text_repel(aes(x = Basal.LumA.logFC, y = -log10(Basal.LumA.padj), 
+                      label = rownames(res.fpkm[order(
+                        -abs(res.fpkm$Basal.LumA.logFC)), ][1:10,]),
                       size = 2, color = "steelblue"),
-                  data = res[order(-abs(
-                    res$logFC.LumA)), ][1:10,])
+                  data = res.fpkm[order(-abs(
+                    res.fpkm$Basal.LumA.logFC)), ][1:10,])
 
 #print(volcanoPlot.Basal_vs_LumA)
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumA))
 
 # Basal_vs_LumB
-volcanoPlot.Basal_vs_LumB <- ggplot(res, aes(x = logFC.LumB, 
-                                             y = -log10(get(paste0(padj_method,".LumB"))),
-                                             color = ifelse(
-                                               get(paste0(padj_method,".LumB")) < 0.05 & 
-                                                 abs(logFC.LumB) > FC_cutoff, 
-                                               "darkred", "grey"))) +
+volcanoPlot.Basal_vs_LumB <- ggplot(res.fpkm, aes(x = Basal.LumB.logFC, 
+                                                  y = -log10(Basal.LumB.padj),
+                                                  color = ifelse(
+                                                    Basal.LumB.padj < 0.05 & 
+                                                      abs(Basal.LumB.logFC) > FC_cutoff, 
+                                                    "darkred", "grey"))) +
   geom_point() +
   xlab(expression("Fold Change, Log"[2]*"")) +
   ylab(expression("Adjusted P value, -Log"[10]*"")) +
-  ylim(c(0,250)) +
+  #ylim(c(0,240)) +
   geom_vline(xintercept = c(-FC_cutoff, FC_cutoff), linetype = "dotted", linewidth = 1) +
   geom_hline(yintercept = -log10(0.05), linetype = "dotted", linewidth = 1) +
   theme_minimal() +
   theme(legend.position = "none") +
   scale_colour_manual(values = c("darkred", "grey", "steelblue")) + 
-  geom_text_repel(aes(x = logFC.LumB, y = -log10(get(paste0(padj_method,".LumB"))), 
-                      label = rownames(res[order(
-                        -abs(res$logFC.LumB)), ][1:10,]),
+  geom_text_repel(aes(x = Basal.LumB.logFC, y = -log10(Basal.LumB.padj), 
+                      label = rownames(res.fpkm[order(
+                        -abs(res.fpkm$Basal.LumB.logFC)), ][1:10,]),
                       size = 2, color = "steelblue"),
-                  data = res[order(-abs(
-                    res$logFC.LumB)), ][1:10,])
+                  data = res.fpkm[order(-abs(
+                    res.fpkm$Basal.LumB.logFC)), ][1:10,])
 
 #print(volcanoPlot.Basal_vs_LumB)
 plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
@@ -172,9 +181,9 @@ mg.colors <- c("<= -2"="#2e4053","-1 to -2"="#5d6d7e",
 
 # Basal_vs_LumA
 anno.Basal_vs_LumA <- anno[anno$NCN.PAM50 %in% c("Basal","LumA"),]
-normCounts.Basal_vs_LumA <- assay(normCounts)[
-  DEGs.Basal_vs_LumA, anno.Basal_vs_LumA$Sample]
-sampleDist <- cor(normCounts.Basal_vs_LumA, method = "spearman")
+dat.Basal_vs_LumA <- fpkm.dat[
+  fpkm.degs.luma, anno.Basal_vs_LumA$Sample]
+sampleDist <- cor(dat.Basal_vs_LumA, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
@@ -195,47 +204,47 @@ plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_LumB LumA
 anno.Basal_vs_LumB <- anno[anno$NCN.PAM50 %in% c("Basal","LumB"),]
-normCounts.Basal_vs_LumB <- assay(normCounts)[
-  DEGs.Basal_vs_LumB, anno.Basal_vs_LumB$Sample]
-sampleDist <- cor(normCounts.Basal_vs_LumB, method = "spearman")
+dat.Basal_vs_LumB <- fpkm.dat[
+  fpkm.degs.lumb, anno.Basal_vs_LumB$Sample]
+sampleDist <- cor(dat.Basal_vs_LumB, method = "spearman")
 plot <- pheatmap(sampleDist,
-         clustering_distance_rows = as.dist(1 - sampleDist),
-         clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(Proliferation = anno.Basal_vs_LumB$Mitotic_progression,
-                                     SteroidResponse = anno.Basal_vs_LumB$SR,
-                                     ImmuneResponse = anno.Basal_vs_LumB$IR,
-                                     PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
-                                     row.names = anno.Basal_vs_LumB$Sample), 
-         annotation_colors = list(Proliferation = mg.colors,
-                                  SteroidResponse = mg.colors,
-                                  ImmuneResponse = mg.colors,
-                                  PAM50 = color.palette),
-         show_rownames = FALSE,
-         show_colnames = FALSE,
-         treeheight_row = 0,
-         treeheight_col = 0)
+                 clustering_distance_rows = as.dist(1 - sampleDist),
+                 clustering_distance_cols = as.dist(1 - sampleDist),
+                 annotation_col = data.frame(Proliferation = anno.Basal_vs_LumB$Mitotic_progression,
+                                             SteroidResponse = anno.Basal_vs_LumB$SR,
+                                             ImmuneResponse = anno.Basal_vs_LumB$IR,
+                                             PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
+                                             row.names = anno.Basal_vs_LumB$Sample), 
+                 annotation_colors = list(Proliferation = mg.colors,
+                                          SteroidResponse = mg.colors,
+                                          ImmuneResponse = mg.colors,
+                                          PAM50 = color.palette),  
+                 show_rownames = FALSE,
+                 show_colnames = FALSE,
+                 treeheight_row = 0,
+                 treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_All: include genes that are distinct for both comparisons
-normCounts.Basal_vs_All <- assay(normCounts)[
-  intersect(DEGs.Basal_vs_LumA, DEGs.Basal_vs_LumB),]
-sampleDist <- cor(normCounts.Basal_vs_All, method = "spearman")
+dat.Basal_vs_Both <- fpkm.dat[
+  intersect(fpkm.degs.luma,fpkm.degs.lumb),]
+sampleDist <- cor(dat.Basal_vs_Both, method = "spearman")
 plot <- pheatmap(sampleDist,
-         clustering_distance_rows = as.dist(1 - sampleDist),
-         clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(Proliferation = anno$Mitotic_progression,
-                                     SteroidResponse = anno$SR,
-                                     ImmuneResponse = anno$IR,
-                                     PAM50 = as.factor(anno$NCN.PAM50),
-                                     row.names = anno$Sample), 
-         annotation_colors = list(Proliferation = mg.colors,
-                                  SteroidResponse = mg.colors,
-                                  ImmuneResponse = mg.colors,
-                                  PAM50 = color.palette),
-         show_rownames = FALSE,
-         show_colnames = FALSE,
-         treeheight_row = 0,
-         treeheight_col = 0)
+                 clustering_distance_rows = as.dist(1 - sampleDist),
+                 clustering_distance_cols = as.dist(1 - sampleDist),
+                 annotation_col = data.frame(Proliferation = anno$Mitotic_progression,
+                                             SteroidResponse = anno$SR,
+                                             ImmuneResponse = anno$IR,
+                                             PAM50 = as.factor(anno$NCN.PAM50),
+                                             row.names = anno$Sample), 
+                 annotation_colors = list(Proliferation = mg.colors,
+                                          SteroidResponse = mg.colors,
+                                          ImmuneResponse = mg.colors,
+                                          PAM50 = color.palette),  
+                 show_rownames = FALSE,
+                 show_colnames = FALSE,
+                 treeheight_row = 0,
+                 treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
 #######################################################################
@@ -243,7 +252,7 @@ plot.list <- append(plot.list, list(plot))
 #######################################################################
 
 # basal specific genes and their entrez ids
-genes <- intersect(DEGs.Basal_vs_LumA, DEGs.Basal_vs_LumB)
+genes <- intersect(fpkm.degs.luma, fpkm.degs.lumb)
 #Convert symbols to Entrez IDs
 Entrez.ids <- bitr(
   genes,
