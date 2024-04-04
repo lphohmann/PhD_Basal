@@ -82,8 +82,6 @@ CNA.freqs.tnbc.nonbasal$freqgain.tnbc.NonBasal <- apply(
   CNA.freqs.tnbc.nonbasal[,5:ncol(CNA.freqs.tnbc.nonbasal)], 1, function(x) (
     length(which(x==1))/ncol(CNA.freqs.tnbc.nonbasal[,5:ncol(CNA.freqs.tnbc.nonbasal)]))*100)
 
-
-
 CNA.freqs.tnbc <- cbind(CNA.freqs.tnbc.basal,
                         CNA.freqs.tnbc.nonbasal[,5:ncol(CNA.freqs.tnbc.nonbasal)])
 
