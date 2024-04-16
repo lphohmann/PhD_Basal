@@ -45,7 +45,7 @@ txt.out <- c() # object to store text output, if the output is not in string for
 sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "TNBC_NonBasal", "TNBC_Basal")]
 
 # load palette
-color.palette <- loadRData(infile.2)[c("ERpHER2n_Basal","TNBC_NonBasal","TNBC_Basal")]
+color.palette <- loadRData(infile.2)[c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")]
 
 # load gex
 gex.df <- loadRData(infile.3)
@@ -90,10 +90,10 @@ for (gene in gene.vec) {
   txt.out <- append(txt.out, c(capture.output(tnbc.basal.res), "\n###########################################\n"))
   txt.out <- append(txt.out, c(capture.output(tnbc.nonbasal.res), "\n###########################################\n"))
   
-  # plot
+  # plot c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")
   plot.par <- list(
-                   data = list(TNBC_Basal=tnbc.basal.dat,
-                               TNBC_NonBasal=tnbc.nonbasal.dat,
+                   data = list(TNBC_NonBasal=tnbc.nonbasal.dat,
+                               TNBC_Basal=tnbc.basal.dat,
                                ERpHER2n_Basal=basal.dat), 
                    col = color.palette, 
                    names = names(color.palette),

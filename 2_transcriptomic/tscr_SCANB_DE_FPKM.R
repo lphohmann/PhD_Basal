@@ -82,3 +82,12 @@ de.res$Basal.LumB.padj <- p.adjust(de.res$Basal.LumB.pval, "fdr")
 
 # save the file
 save(de.res,file = outfile.1)
+# 
+# 
+# 
+# 
+# ## check
+# x <- loadRData("./data/SCANB/2_transcriptomic/processed/DE_result_FPKM.RData")
+# View(x[c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1"),])
+# "ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1"
+

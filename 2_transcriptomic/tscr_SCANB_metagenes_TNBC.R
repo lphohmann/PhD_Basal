@@ -121,7 +121,9 @@ for (metagene in metagenes) {
   
   # plot
   plot.par <- list(
-    data = list(TNBC_NonBasal=tnbc.nonbasal.dat,TNBC_Basal=tnbc.basal.dat,ERpHER2n_Basal=erp.basal.dat), 
+    data = list(TNBC_NonBasal=tnbc.nonbasal.dat,
+                TNBC_Basal=tnbc.basal.dat,
+                ERpHER2n_Basal=erp.basal.dat), 
     col = color.palette, 
     names = names(color.palette),
     ylab = "mRNA expression (log2)",

@@ -129,7 +129,7 @@ plot <- waterfall(driv.df,
                   mainGrid = TRUE,
                   main_geneLabSize = 15,
                   mainRecurCutoff = 0,
-                  maxGenes = 50,
+                  maxGenes = 5,
                   mainDropMut = TRUE, # drop unused types from legend
                   #rmvSilent = TRUE,
                   out= "grob",
