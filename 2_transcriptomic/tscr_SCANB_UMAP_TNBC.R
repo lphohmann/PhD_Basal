@@ -114,7 +114,7 @@ umap.dat.plot$Subtype <- anno$Subtype[match(rownames(umap.dat.plot),anno$Sample)
 # plot
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$Subtype, levels = names(color.palette))],
-     pch = 16,
+     pch = 16, cex=2,
      main = paste0("FPKM UMAP top most varying genes n=",nrow(FPKM.dat.filt)), 
      xlab = "UMAP1", ylab = "UMAP2")
 legend("topright", legend = names(color.palette), col = color.palette, 
