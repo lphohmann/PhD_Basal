@@ -1,6 +1,6 @@
-# Script: PAM50 correlations in SCAN-B
+# Script: ER+ cell counts (%) in SCAN-B whole follow up cohort
 # Author: Lennart Hohmann
-# Date: 26.01.2024
+# Date: 06.05.2024
 #-------------------
 # empty environment 
 rm(list=ls())
@@ -59,13 +59,6 @@ erperc.dat <- read.table(infile.3,sep="\t",header=TRUE)
 erperc.dat <- erperc.dat[erperc.dat$rba %in% anno$GEX.assay,]
 erperc.dat <- erperc.dat[c("Specimen","INCA2_op_pad_erproc")]
 erperc.dat$PAM50 <- anno$PAM50_NCN[match(erperc.dat$Specimen,anno$Sample)] 
-#View(erperc.dat)
-
-#table(erperc.dat$INCA2_op_pad_erproc)
-
-# also add the tnbc data to this
-# load full follow up cohort
-# then pull
 
 #######################################################################
 # Plot
