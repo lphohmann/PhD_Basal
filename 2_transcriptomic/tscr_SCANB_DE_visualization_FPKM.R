@@ -90,30 +90,37 @@ res.counts <- loadRData(infile.4)
 # try different cutoffs: select genes where the differential expression 
 # is statistically significant and large enough to be considered biologically meaningful
 FC_cutoff <- log2(2) # log2(3)
-fpkm.degs.luma <- rownames(
-  res.fpkm[res.fpkm$Basal.LumA.padj <= 0.05 & abs(res.fpkm$Basal.LumA.logFC) > FC_cutoff,])
-fpkm.degs.lumb <- rownames(
-  res.fpkm[res.fpkm$Basal.LumB.padj <= 0.05 & abs(res.fpkm$Basal.LumB.logFC) > FC_cutoff,])
-counts.degs.luma <- rownames(
-  res.fpkm[res.counts$FDR.LumA <= 0.05 & abs(res.counts$logFC.LumA) > FC_cutoff,])
-counts.degs.lumb <- rownames(
-  res.fpkm[res.counts$FDR.LumB <= 0.05 & abs(res.counts$logFC.LumB) > FC_cutoff,])
+
+# ordered vectors of DEGs (ordered based on logFC for later GSEA)
+fpkm.degs.luma.df <- res.fpkm[res.fpkm$Basal.LumA.padj <= 0.05 & abs(res.fpkm$Basal.LumA.logFC) > FC_cutoff,]
+fpkm.degs.luma <- rownames(fpkm.degs.luma.df)[order(fpkm.degs.luma.df$Basal.LumA.logFC,decreasing=TRUE)]
+fpkm.degs.lumb.df <- res.fpkm[res.fpkm$Basal.LumB.padj <= 0.05 & abs(res.fpkm$Basal.LumB.logFC) > FC_cutoff,]
+fpkm.degs.lumb <- rownames(fpkm.degs.lumb.df)[order(fpkm.degs.lumb.df$Basal.LumB.logFC,decreasing=TRUE)]
+
+# fpkm.degs.luma <- rownames(
+#   res.fpkm[res.fpkm$Basal.LumA.padj <= 0.05 & abs(res.fpkm$Basal.LumA.logFC) > FC_cutoff,])
+# fpkm.degs.lumb <- rownames(
+#   res.fpkm[res.fpkm$Basal.LumB.padj <= 0.05 & abs(res.fpkm$Basal.LumB.logFC) > FC_cutoff,])
+# counts.degs.luma <- rownames(
+#   res.fpkm[res.counts$FDR.LumA <= 0.05 & abs(res.counts$logFC.LumA) > FC_cutoff,])
+# counts.degs.lumb <- rownames(
+#   res.fpkm[res.counts$FDR.LumB <= 0.05 & abs(res.counts$logFC.LumB) > FC_cutoff,])
 
 length(intersect(fpkm.degs.luma,fpkm.degs.lumb)) 
-length(intersect(counts.degs.luma,counts.degs.lumb)) 
+#length(intersect(counts.degs.luma,counts.degs.lumb)) 
 
 #######################################################################
 # Venn diagram
 #######################################################################
 
-venn.plot <- venn.diagram(
-  x = list(FPKM = intersect(fpkm.degs.luma,fpkm.degs.lumb), Counts = intersect(counts.degs.luma,counts.degs.lumb)),
-  category.names = c("FPKM", "Counts"),
-  filename = NULL
-)
-
-# Plot the Venn diagram
-grid.draw(venn.plot)
+# venn.plot <- venn.diagram(
+#   x = list(FPKM = intersect(fpkm.degs.luma,fpkm.degs.lumb), Counts = intersect(counts.degs.luma,counts.degs.lumb)),
+#   category.names = c("FPKM", "Counts"),
+#   filename = NULL
+# )
+# 
+# # Plot the Venn diagram
+# grid.draw(venn.plot)
 
 #######################################################################
 # Visualize results: Vulcano plots
@@ -308,42 +315,60 @@ plot.list <- append(plot.list, list(plot))
 # Gene set enrichment analyses (GSEA), for LumA and LumB comparisons
 #######################################################################
 
-# #GO GSEA
-# allFC <- sort(res$logFC.LumA, decreasing = TRUE)
-# names(allFC) <- rownames(res)
-# goGSEA <- gseGO(
-#   gene = allFC,
-#   OrgDb = org.Hs.eg.db,
-#   keyType = "SYMBOL",
-#   ont = "BP",
-#   minGSSize = 10,
-#   maxGSSize = 500,
-#   pAdjustMethod = "BH",
-#   pvalueCutoff = 0.05)
-# 
-# #Visulization
-# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(goGSEA)
-# goGSEA <- pairwise_termsim(goGSEA)
-# treeplot(goGSEA)
+#GO GSEA
+fpkm.degs.luma.sorted <- sort(fpkm.degs.luma.df$Basal.LumA.logFC, decreasing = TRUE)
+names(fpkm.degs.luma.sorted) <- fpkm.degs.luma
 
-# allFC <- sort(res$logFC.LumB, decreasing = TRUE)
-# names(allFC) <- rownames(res)
-# goGSEA <- gseGO(
-#   gene = allFC,
-#   OrgDb = org.Hs.eg.db,
-#   keyType = "SYMBOL",
-#   ont = "BP",
-#   minGSSize = 10,
-#   maxGSSize = 500,
-#   pAdjustMethod = "BH",
-#   pvalueCutoff = 0.05)
-# 
-# #Visulization
-# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(goGSEA)
-# goGSEA <- pairwise_termsim(goGSEA)
-# treeplot(goGSEA)
+fpkm.degs.lumb.sorted <- sort(fpkm.degs.lumb.df$Basal.LumB.logFC, decreasing = TRUE)
+names(fpkm.degs.lumb.sorted) <- fpkm.degs.lumb
+
+# comp 1
+goGSEA <- gseGO(
+  gene = fpkm.degs.luma.sorted,
+  OrgDb = org.Hs.eg.db,
+  keyType = "SYMBOL",
+  ont = "BP",
+  minGSSize = 10,
+  maxGSSize = 500,
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  nPermSimple = 100000,
+  eps=0
+)
+
+#Visulization
+plot <- cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+plot.list <- append(plot.list, list(plot))
+plot <- dotplot(goGSEA,x = "Count",showCategory = 5)
+plot.list <- append(plot.list, list(plot))
+
+goGSEA <- pairwise_termsim(goGSEA)
+plot <- treeplot(goGSEA)
+plot.list <- append(plot.list, list(plot))
+
+# comp 2
+goGSEA <- gseGO(
+  gene = fpkm.degs.lumb.sorted,
+  OrgDb = org.Hs.eg.db,
+  keyType = "SYMBOL",
+  ont = "BP",
+  minGSSize = 10,
+  maxGSSize = 500,
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  nPermSimple = 100000,
+  eps=0
+)
+
+#Visulization
+plot <- cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+plot.list <- append(plot.list, list(plot))
+plot <- dotplot(goGSEA,x = "Count",showCategory = 5)
+plot.list <- append(plot.list, list(plot))
+
+goGSEA <- pairwise_termsim(goGSEA)
+plot <- treeplot(goGSEA)
+plot.list <- append(plot.list, list(plot))
 
 #######################################################################
 # Until here for now, continue tomorrow.

@@ -94,10 +94,13 @@ res.fpkm <- loadRData(infile.5)
 # try different cutoffs: select genes where the differential expression 
 # is statistically significant and large enough to be considered biologically meaningful
 FC_cutoff <- log2(2) # log2(3)
-fpkm.degs.bas <- rownames(
-  res.fpkm[res.fpkm$Basal.tnbc.basal.padj <= 0.05 & abs(res.fpkm$Basal.tnbc.basal.logFC) > FC_cutoff,])
-fpkm.degs.nonbas <- rownames(
-  res.fpkm[res.fpkm$Basal.tnbc.nonbasal.padj <= 0.05 & abs(res.fpkm$Basal.tnbc.nonbasal.logFC) > FC_cutoff,])
+
+# ordered vectors of DEGs (ordered based on logFC for later GSEA)
+fpkm.degs.bas.df <- res.fpkm[res.fpkm$Basal.tnbc.basal.padj <= 0.05 & abs(res.fpkm$Basal.tnbc.basal.logFC) > FC_cutoff,]
+fpkm.degs.bas <- rownames(fpkm.degs.bas.df)[order(fpkm.degs.bas.df$Basal.tnbc.basal.logFC,decreasing=TRUE)]
+
+fpkm.degs.nonbas.df <- res.fpkm[res.fpkm$Basal.tnbc.nonbasal.padj <= 0.05 & abs(res.fpkm$Basal.tnbc.nonbasal.logFC) > FC_cutoff,]
+fpkm.degs.nonbas <- rownames(fpkm.degs.nonbas.df)[order(fpkm.degs.nonbas.df$Basal.tnbc.nonbasal.logFC,decreasing=TRUE)]
 
 length(intersect(fpkm.degs.bas,fpkm.degs.nonbas)) 
 
@@ -123,7 +126,7 @@ length(intersect(fpkm.degs.bas,fpkm.degs.nonbas))
 # Basal.tnbc.nonbasal.padj
 
 # Basal_vs_tnbc basal
-volcanoPlot.Basal_vs_LumA <- ggplot(res.fpkm, aes(x = Basal.tnbc.basal.logFC, 
+volcanoPlot.Basal_vs_TNBCbasal <- ggplot(res.fpkm, aes(x = Basal.tnbc.basal.logFC, 
                                              y = -log10(Basal.tnbc.basal.padj),
                                              color = ifelse(
                                                Basal.tnbc.basal.padj < 0.05 & 
@@ -145,11 +148,11 @@ volcanoPlot.Basal_vs_LumA <- ggplot(res.fpkm, aes(x = Basal.tnbc.basal.logFC,
                   data = res.fpkm[order(-abs(
                     res.fpkm$Basal.tnbc.basal.logFC)), ][1:10,])
 
-#print(volcanoPlot.Basal_vs_LumA)
-plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumA))
+#print(volcanoPlot.Basal_vs_TNBCbasal)
+plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_TNBCbasal))
 
 # Basal_vs_ tnbc non basal
-volcanoPlot.Basal_vs_LumB <- ggplot(res.fpkm, aes(x = Basal.tnbc.nonbasal.logFC, 
+volcanoPlot.Basal_vs_TNBCnonbasal <- ggplot(res.fpkm, aes(x = Basal.tnbc.nonbasal.logFC, 
                                                   y = -log10(Basal.tnbc.nonbasal.padj),
                                                   color = ifelse(
                                                     Basal.tnbc.nonbasal.padj < 0.05 & 
@@ -171,8 +174,8 @@ volcanoPlot.Basal_vs_LumB <- ggplot(res.fpkm, aes(x = Basal.tnbc.nonbasal.logFC,
                   data = res.fpkm[order(-abs(
                     res.fpkm$Basal.tnbc.nonbasal.logFC)), ][1:10,])
 
-#print(volcanoPlot.Basal_vs_LumB)
-plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_LumB))
+#print(volcanoPlot.Basal_vs_TNBCnonbasal)
+plot.list <- append(plot.list, list(volcanoPlot.Basal_vs_TNBCnonbasal))
 
 #######################################################################
 # Visualize results: Heatmaps
@@ -181,47 +184,46 @@ mg.colors <- c("<= -2"="#2e4053","-1 to -2"="#5d6d7e",
                "-0.5 to -1"="#aeb6bf","-0.5 to 0.5"="#ecf0f1",
                "0.5 to 1"="#edbb99","1 to 2"="#dc7633",">= 2"="#ba4a00")
 
-
-# Basal_vs_LumA
-anno.Basal_vs_LumA <- anno[anno$NCN.PAM50 %in% c("Basal","LumA"),]
-dat.Basal_vs_LumA <- fpkm.dat[
-  fpkm.degs.luma, anno.Basal_vs_LumA$Sample]
-sampleDist <- cor(dat.Basal_vs_LumA, method = "spearman")
+# Basal_vs_TNBCbasal
+anno.Basal_vs_TNBCbasal <- anno[anno$Subtype %in% c("ERpHER2n_Basal","TNBC_Basal"),]
+dat.Basal_vs_TNBCbasal <- fpkm.dat[
+  fpkm.degs.bas, anno.Basal_vs_TNBCbasal$Sample]
+sampleDist <- cor(dat.Basal_vs_TNBCbasal, method = "spearman")
 plot <- pheatmap(sampleDist,
          clustering_distance_rows = as.dist(1 - sampleDist),
          clustering_distance_cols = as.dist(1 - sampleDist),
-         annotation_col = data.frame(Proliferation = anno.Basal_vs_LumA$Mitotic_progression,
-                                     SteroidResponse = anno.Basal_vs_LumA$SR,
-                                     ImmuneResponse = anno.Basal_vs_LumA$IR,
-                                     PAM50 = as.factor(anno.Basal_vs_LumA$NCN.PAM50),
-                                     row.names = anno.Basal_vs_LumA$Sample), 
+         annotation_col = data.frame(Proliferation = anno.Basal_vs_TNBCbasal$Mitotic_progression,
+                                     SteroidResponse = anno.Basal_vs_TNBCbasal$SR,
+                                     ImmuneResponse = anno.Basal_vs_TNBCbasal$IR,
+                                     Subtype = as.factor(anno.Basal_vs_TNBCbasal$Subtype),
+                                     row.names = anno.Basal_vs_TNBCbasal$Sample), 
          annotation_colors = list(Proliferation = mg.colors,
                                   SteroidResponse = mg.colors,
                                   ImmuneResponse = mg.colors,
-                                  PAM50 = color.palette),  
+                                  Subtype = color.palette),  
          show_rownames = FALSE,
          show_colnames = FALSE,
          treeheight_row = 0,
          treeheight_col = 0)
 plot.list <- append(plot.list, list(plot))
 
-# Basal_vs_LumB LumA
-anno.Basal_vs_LumB <- anno[anno$NCN.PAM50 %in% c("Basal","LumB"),]
-dat.Basal_vs_LumB <- fpkm.dat[
-  fpkm.degs.lumb, anno.Basal_vs_LumB$Sample]
-sampleDist <- cor(dat.Basal_vs_LumB, method = "spearman")
+# Basal_vs_TNBCnonbasal
+anno.Basal_vs_TNBCnonbasal <- anno[anno$Subtype %in% c("ERpHER2n_Basal","TNBC_NonBasal"),]
+dat.Basal_vs_TNBCnonbasal <- fpkm.dat[
+  fpkm.degs.nonbas, anno.Basal_vs_TNBCnonbasal$Sample]
+sampleDist <- cor(dat.Basal_vs_TNBCnonbasal, method = "spearman")
 plot <- pheatmap(sampleDist,
                  clustering_distance_rows = as.dist(1 - sampleDist),
                  clustering_distance_cols = as.dist(1 - sampleDist),
-                 annotation_col = data.frame(Proliferation = anno.Basal_vs_LumB$Mitotic_progression,
-                                             SteroidResponse = anno.Basal_vs_LumB$SR,
-                                             ImmuneResponse = anno.Basal_vs_LumB$IR,
-                                             PAM50 = as.factor(anno.Basal_vs_LumB$NCN.PAM50),
-                                             row.names = anno.Basal_vs_LumB$Sample), 
+                 annotation_col = data.frame(Proliferation = anno.Basal_vs_TNBCnonbasal$Mitotic_progression,
+                                             SteroidResponse = anno.Basal_vs_TNBCnonbasal$SR,
+                                             ImmuneResponse = anno.Basal_vs_TNBCnonbasal$IR,
+                                             Subtype = as.factor(anno.Basal_vs_TNBCnonbasal$Subtype),
+                                             row.names = anno.Basal_vs_TNBCnonbasal$Sample), 
                  annotation_colors = list(Proliferation = mg.colors,
                                           SteroidResponse = mg.colors,
                                           ImmuneResponse = mg.colors,
-                                          PAM50 = color.palette),  
+                                          Subtype = color.palette),  
                  show_rownames = FALSE,
                  show_colnames = FALSE,
                  treeheight_row = 0,
@@ -230,7 +232,7 @@ plot.list <- append(plot.list, list(plot))
 
 # Basal_vs_All: include genes that are distinct for both comparisons
 dat.Basal_vs_Both <- fpkm.dat[
-  intersect(fpkm.degs.luma,fpkm.degs.lumb),]
+  intersect(fpkm.degs.bas,fpkm.degs.nonbas),]
 sampleDist <- cor(dat.Basal_vs_Both, method = "spearman")
 plot <- pheatmap(sampleDist,
                  clustering_distance_rows = as.dist(1 - sampleDist),
@@ -238,12 +240,12 @@ plot <- pheatmap(sampleDist,
                  annotation_col = data.frame(Proliferation = anno$Mitotic_progression,
                                              SteroidResponse = anno$SR,
                                              ImmuneResponse = anno$IR,
-                                             PAM50 = as.factor(anno$NCN.PAM50),
+                                             Subtype = as.factor(anno$Subtype),
                                              row.names = anno$Sample), 
                  annotation_colors = list(Proliferation = mg.colors,
                                           SteroidResponse = mg.colors,
                                           ImmuneResponse = mg.colors,
-                                          PAM50 = color.palette),  
+                                          Subtype = color.palette),  
                  show_rownames = FALSE,
                  show_colnames = FALSE,
                  treeheight_row = 0,
@@ -255,7 +257,7 @@ plot.list <- append(plot.list, list(plot))
 #######################################################################
 
 # basal specific genes and their entrez ids
-genes <- intersect(fpkm.degs.luma, fpkm.degs.lumb)
+genes <- intersect(fpkm.degs.bas, fpkm.degs.nonbas)
 #Convert symbols to Entrez IDs
 Entrez.ids <- bitr(
   genes,
@@ -282,71 +284,79 @@ goSEA <- enrichGO(
 plot <- cnetplot(goSEA, colorEdge = TRUE, cex_label_gene = 0.5)
 plot.list <- append(plot.list, list(plot))
 
-plot <- dotplot(goSEA)
+plot <- dotplot(goSEA,x = "Count",showCategory = 5)
 plot.list <- append(plot.list, list(plot))
 
+plot <- dotplot(goSEA,x = "GeneRatio",showCategory = 5)
+plot.list <- append(plot.list, list(plot))
+#print(plot)
 goSEA <- pairwise_termsim(goSEA)
 plot <- treeplot(goSEA)
 plot.list <- append(plot.list, list(plot))
 
-
-# #---------------------------------
-# 
-# #KEGG SEA
-# keggSEA <- enrichKEGG(
-#   gene = Entrez.ids,
-#   organism = "hsa",
-#   keyType = "ncbi-geneid",
-#   pvalueCutoff = 0.05,
-#   qvalueCutoff = 0.05)
-# 
-# #Visulization
-# cnetplot(keggSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(keggSEA)
-# keggSEA <- pairwise_termsim(keggSEA)
-# treeplot(keggSEA)
-
-
 #######################################################################
-# Gene set enrichment analyses (GSEA), for LumA and LumB comparisons
+# Gene set enrichment analyses (GSEA)
 #######################################################################
 
-# #GO GSEA
-# allFC <- sort(res$logFC.LumA, decreasing = TRUE)
-# names(allFC) <- rownames(res)
-# goGSEA <- gseGO(
-#   gene = allFC,
-#   OrgDb = org.Hs.eg.db,
-#   keyType = "SYMBOL",
-#   ont = "BP",
-#   minGSSize = 10,
-#   maxGSSize = 500,
-#   pAdjustMethod = "BH",
-#   pvalueCutoff = 0.05)
-# 
-# #Visulization
-# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(goGSEA)
-# goGSEA <- pairwise_termsim(goGSEA)
-# treeplot(goGSEA)
+#GO GSEA
 
-# allFC <- sort(res$logFC.LumB, decreasing = TRUE)
-# names(allFC) <- rownames(res)
-# goGSEA <- gseGO(
-#   gene = allFC,
-#   OrgDb = org.Hs.eg.db,
-#   keyType = "SYMBOL",
-#   ont = "BP",
-#   minGSSize = 10,
-#   maxGSSize = 500,
-#   pAdjustMethod = "BH",
-#   pvalueCutoff = 0.05)
-# 
-# #Visulization
-# cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
-# dotplot(goGSEA)
+fpkm.degs.bas.sorted <- sort(fpkm.degs.bas.df$Basal.tnbc.basal.logFC, decreasing = TRUE)
+names(fpkm.degs.bas.sorted) <- fpkm.degs.bas
+
+fpkm.degs.nonbas.sorted <- sort(fpkm.degs.nonbas.df$Basal.tnbc.nonbasal.logFC, decreasing = TRUE)
+names(fpkm.degs.nonbas.sorted) <- fpkm.degs.nonbas
+
+# comp 1
+goGSEA <- gseGO(
+ gene = fpkm.degs.bas.sorted,
+ OrgDb = org.Hs.eg.db,
+ keyType = "SYMBOL",
+ ont = "BP",
+ minGSSize = 10,
+ maxGSSize = 500,
+ pAdjustMethod = "BH",
+ pvalueCutoff = 0.05,
+ nPermSimple = 100000,
+ eps=0
+ )
+
+#Visulization
+plot <- cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+plot.list <- append(plot.list, list(plot))
+plot <- dotplot(goGSEA,x = "Count",showCategory = 5)
+plot.list <- append(plot.list, list(plot))
+
+
 # goGSEA <- pairwise_termsim(goGSEA)
-# treeplot(goGSEA)
+# plot <- treeplot(goGSEA)
+# plot.list <- append(plot.list, list(plot))
+
+# comp 2
+goGSEA <- gseGO(
+  gene = fpkm.degs.nonbas.sorted,
+  OrgDb = org.Hs.eg.db,
+  keyType = "SYMBOL",
+  ont = "BP",
+  minGSSize = 10,
+  maxGSSize = 500,
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  nPermSimple = 100000,
+  eps=0
+)
+
+
+#Visulization
+plot <- cnetplot(goGSEA, colorEdge = TRUE, cex_label_gene = 0.5)
+plot.list <- append(plot.list, list(plot))
+plot <- dotplot(goGSEA,x = "Count",showCategory = 5)
+plot.list <- append(plot.list, list(plot))
+
+
+# goGSEA <- pairwise_termsim(goGSEA)
+# plot <- treeplot(goGSEA)
+# plot.list <- append(plot.list, list(plot))
+
 
 #######################################################################
 # Until here for now, continue tomorrow.
