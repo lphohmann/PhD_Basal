@@ -116,13 +116,8 @@ sign.scanb <- sign.scanb[sign.scanb$Sample %in% qc.samples.s,]
 # load and process TNBC data
 #######################################################################
 tnbc.samples <- loadRData(infile.1)[c("TNBC_Basal","TNBC_NonBasal")]
-str(tnbc.samples)
 
 tnbc.anno <- loadRData(infile.3)
-tnbc.anno$Subtype <- ifelse(tnbc.anno$External_ID_sample %in% unlist(tnbc.samples["TNBC_NonBasal"]),
-                            "TNBC_NonBasal", 
-                            ifelse(tnbc.anno$External_ID_sample %in% unlist(tnbc.samples["TNBC_Basal"]),
-                                   "TNBC_Basal", "ERpHER2n_Basal"))
 tnbc.anno$Subtype <- sapply(tnbc.anno$External_ID_sample, function(sampleID) {
   for (sublist_name in names(tnbc.samples)) {
     if (sampleID %in% tnbc.samples[[sublist_name]]) {
@@ -139,7 +134,10 @@ sign.tnbc <- tnbc.anno[tnbc.anno$External_ID_sample %in% unlist(tnbc.samples),
 # flatten
 rs.df <- as.data.frame(sign.tnbc$RearrangementSignatures.prop)
 ms.df <- as.data.frame(sign.tnbc$SigFit.mutationalSignatures.prop)
-sign.tnbc <- cbind(sign.tnbc["PAM50_AIMS"], rs.df, ms.df)
+sign.tnbc <- cbind(sign.tnbc["Subtype"], rs.df, ms.df)
+
+str(sign.tnbc)
+str(sign.scanb)
 
 # check which signatures are present in both cohorts
 colnames(sign.scanb) <- gsub("RefSigR","RS", colnames(sign.scanb))
@@ -149,17 +147,17 @@ common.sigs <- intersect(colnames(sign.scanb),colnames(sign.tnbc))
 # exclude non-shared ones
 rownames.basal <- sign.scanb$Sample
 sign.scanb <- sign.scanb[,common.sigs]
-pam50.tnbc <- sign.tnbc$PAM50_AIMS
+st.tnbc <- sign.tnbc$Subtype
 sign.tnbc <- sign.tnbc[,common.sigs]
-sign.tnbc$PAM50 <- pam50.tnbc
+sign.tnbc$Subtype <- st.tnbc
 
 # add subtype
-sign.scanb$PAM50 <- "Basal"
+sign.scanb$Subtype <- "ERpHER2n_Basal"
 
 # put together in an object ready for plotting 
 sign.dat <- rbind(sign.scanb,sign.tnbc)
 #View(sign.dat)
-row.names(sign.dat)[1:length(rownames.basal)] <- rownames.basal
+#row.names(sign.dat)[1:length(rownames.basal)] <- rownames.basal
 
 #######################################################################
 # plot
@@ -171,35 +169,35 @@ for (sig in common.sigs) {
                                "\n###########################################\n"))
   
   # sig data
-  luma.dat <- sign.dat[sign.dat$PAM50=="LumA",sig]
-  lumb.dat <- sign.dat[sign.dat$PAM50=="LumB",sig]
+  bas.dat <- sign.dat[sign.dat$Subtype=="TNBC_Basal",sig]
+  nonbas.dat <- sign.dat[sign.dat$Subtype=="TNBC_NonBasal",sig]
   # have to filter samples for rearr signatures below <25
   if (grepl("RS", sig)) {
-    basal.dat <- sign.dat[sign.dat$PAM50=="Basal",]
+    basal.dat <- sign.dat[sign.dat$Subtype=="ERpHER2n_Basal",]
     basal.dat <- basal.dat[!row.names(basal.dat) %in% sign.rearr.exclude,sig]
-  } else { basal.dat <- sign.dat[sign.dat$PAM50=="Basal",sig] }
+  } else { basal.dat <- sign.dat[sign.dat$Subtype=="ERpHER2n_Basal",sig] }
   
   # statistics
   # summary statistics
   basal.stats <- get_stats(basal.dat)
-  luma.stats <- get_stats(luma.dat)
-  lumb.stats <- get_stats(lumb.dat)
+  bas.stats <- get_stats(bas.dat)
+  nonbas.stats <- get_stats(nonbas.dat)
   
-  txt.out <- append(txt.out, c("Basal\n",capture.output(basal.stats), "\n",
-                               "LumA\n",capture.output(luma.stats), "\n",
-                               "LumB\n",capture.output(lumb.stats),
+  txt.out <- append(txt.out, c("ERpHER2n_Basal\n",capture.output(basal.stats), "\n",
+                               "TNBC_Basal\n",capture.output(bas.stats), "\n",
+                               "TNBC_NonBasal\n",capture.output(nonbas.stats),
                                "\n###########################################\n"))
   
   # mann whitney u tests
-  luma.res <- wilcox.test(basal.dat, luma.dat)
-  lumb.res <- wilcox.test(basal.dat, lumb.dat)
+  bas.res <- wilcox.test(basal.dat, bas.dat)
+  nonbas.res <- wilcox.test(basal.dat, nonbas.dat)
   
-  txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
-  txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(bas.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(nonbas.res), "\n###########################################\n"))
   
   # plot
   plot.par <- list(
-    data = list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
+    data = list(TNBC_NonBasal=nonbas.dat,TNBC_Basal=bas.dat,ERpHER2n_Basal=basal.dat), 
     col = color.palette, 
     names = names(color.palette),
     ylab = "proportion",
