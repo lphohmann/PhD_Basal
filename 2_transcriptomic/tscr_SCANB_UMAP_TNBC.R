@@ -62,10 +62,14 @@ FPKM.dat <- FPKM.dat[sampleIDs]
 anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE, c("Sample","NCN.PAM50")]
 anno <- anno[anno$Sample %in% sampleIDs, ]
-anno$Subtype <- ifelse(anno$Sample %in% unlist(sID.ls["TNBC_NonBasal"]),
-                       "TNBC_NonBasal", 
-                       ifelse(anno$Sample %in% unlist(sID.ls["TNBC_Basal"]),
-                              "TNBC_Basal", "ERpHER2n_Basal"))
+anno$Subtype <- sapply(anno$Sample, function(sampleID) {
+  for (sublist_name in names(sID.ls)) {
+    if (sampleID %in% sID.ls[[sublist_name]]) {
+      return(sublist_name)
+    }
+  }
+  return(NA)
+})
 
 #######################################################################
 # UMAP based on FPKM data; all genes
