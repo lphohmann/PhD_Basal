@@ -84,38 +84,45 @@ tnbc.anno <- tnbc.anno[tnbc.anno$External_ID_sample %in% unlist(tnbc.samples),]
 driv.tnbc <- driv.tnbc[driv.tnbc$SampleID %in% unlist(tnbc.samples),]
 #View(driv.tnbc)
 
-# get into right format
-# SampleID Gene Type+Effect Subtype
+# get into right format to match scanb basal
+
 driv.tnbc$variant_class <- paste0(driv.tnbc$Type,"_",driv.tnbc$Effect)
+# not included in the basal drivers
+driv.tnbc <- driv.tnbc[driv.tnbc$variant_class != "loss_NA", ]
+# indel framesift, indel inframe
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class %in% c("Del_frameshift","Ins_frameshift"),
+                                  "indel_frameshift",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class %in% c("Del_inframe","Ins_inframe"),
+                                  "indel_inframe",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "amp_NA",
+                                  "CN_amplification",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "Sub_missense",
+                                  "point_missense",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "Sub_nonsense",
+                                  "point_nonsense",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "r.deletion_NA",
+                                  "rearr_deletion",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "r.inversion_NA",
+                                  "rearr_inversion",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "r.tandem-duplication_NA",
+                                  "rearr_tandem-duplication",driv.tnbc$variant_class)
+driv.tnbc$variant_class <- ifelse(driv.tnbc$variant_class == "r.translocation_NA",
+                                  "rearr_translocation",driv.tnbc$variant_class)
+
 driv.tnbc <- driv.tnbc[c("SampleID","Gene","variant_class","Subtype")]
 names(driv.tnbc) <- names(driv.scanb)
 
-#- cont here; match these
-table(driv.tnbc$variant_class)
-table(driv.scanb$variant_class)
-
-
-
-
-
-
-# exclude CopyNumber_HD & Complex_frameshift because these were not assessed in SCANB
-driv.basis <- driv.basis[driv.basis$variant_class %!in% 
-                              c("Complex_frameshift","CopyNumber_HD"),]
-
-#View(driv.basis)
-#View(basis.anno)
-#table(driv.basis$PAM50)
-
-# in one df
+#table(driv.tnbc$variant_class)
+#table(driv.scanb$variant_class)
+#head(driv.tnbc)
 #head(driv.scanb)
-#head(driv.basis)
-driv.dat <- as.data.frame(rbind(driv.scanb,driv.basis))
+
+driv.dat <- as.data.frame(rbind(driv.scanb,driv.tnbc))
 #View(driv.dat)
 
-# total sample counts to calc. mut freqs
-pam50.counts <- table(
-  driv.dat[!duplicated(driv.dat[,c("sample")]),]$PAM50)
+# total sample counts to calc. mut freqs, not all tnbc samples here, some have no driv muts?
+subtype.counts <- table(
+  driv.dat[!duplicated(driv.dat[,c("sample")]),]$Subtype)
 
 #######################################################################
 # plot and stats
@@ -129,29 +136,29 @@ for (gene in genes) {
                                "\n###########################################\n"))
   
   # gene data
-  gene.dat <- as.data.frame(table(driv.dat[driv.dat$gene==gene,]$PAM50))
+  gene.dat <- as.data.frame(table(driv.dat[driv.dat$gene==gene,]$Subtype))
   row.names(gene.dat) <- gene.dat$Var1
   gene.dat$Var1 <- NULL
-  gene.dat$Not_mutated <- pam50.counts[row.names(gene.dat)] - gene.dat$Freq
+  gene.dat$Not_mutated <- subtype.counts[row.names(gene.dat)] - gene.dat$Freq
   names(gene.dat) <- c("Mutated","Not_Mutated")
-  gene.mut.freqs <- (gene.dat$Mutated / pam50.counts[row.names(gene.dat)])*100
+  gene.mut.freqs <- (gene.dat$Mutated / subtype.counts[row.names(gene.dat)])*100
   
   # statistics
   txt.out <- append(txt.out, c("\n",capture.output(gene.mut.freqs), "\n",
                                "\n###########################################\n"))
   
   # mann whitney u tests
-  luma.res <- if(sum(is.na(gene.dat[c("Basal","LumA"),]))==0) {
-    fisher.test(gene.dat[c("Basal","LumA"),]) } else {"NA"}
-  lumb.res <- if(sum(is.na(gene.dat[c("Basal","LumB"),]))==0) {
-    fisher.test(gene.dat[c("Basal","LumB"),]) } else {"NA"}
+  nonbas.res <- if(sum(is.na(gene.dat[c("ERpHER2n_Basal","TNBC_NonBasal"),]))==0) {
+    fisher.test(gene.dat[c("ERpHER2n_Basal","TNBC_NonBasal"),]) } else {"NA"}
+  bas.res <- if(sum(is.na(gene.dat[c("ERpHER2n_Basal","TNBC_Basal"),]))==0) {
+    fisher.test(gene.dat[c("ERpHER2n_Basal","TNBC_Basal"),]) } else {"NA"}
   
-  txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
-  txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(nonbas.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(bas.res), "\n###########################################\n"))
   
   # plot
   plot.par <- list(
-    height = gene.mut.freqs[c("LumA","LumB","Basal")], 
+    height = gene.mut.freqs[c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")], 
     names=names(color.palette), 
     col = color.palette,
     ylim=c(0,100),
@@ -173,7 +180,7 @@ for (i in 1:length(plot.parameters)) {
                 ylim=plot.parameters[[i]]$ylim,
                 main=plot.parameters[[i]]$main,
                 ylab=plot.parameters[[i]]$ylab)
-  axis(3,at=bp,labels=pam50.counts[names(color.palette)])
+  axis(3,at=bp,labels=subtype.counts[names(color.palette)]) # change to all samples?
 }
 par(mfrow = c(1, 1))
 dev.off()
