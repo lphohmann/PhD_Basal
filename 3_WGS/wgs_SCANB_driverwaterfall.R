@@ -122,19 +122,20 @@ save(driv.df, file= outfile.1)
 #######################################################################
 # plot waterfall
 #######################################################################
+names(driv.df) <- c("sample", "gene", "mutation")
 
-plot <- waterfall(driv.df, 
-                  fileType = "Custom", 
-                  variant_class_order = unique(driv.df$variant_class), 
-                  mainGrid = TRUE,
-                  main_geneLabSize = 15,
-                  mainRecurCutoff = 0,
-                  maxGenes = 5,
-                  mainDropMut = TRUE, # drop unused types from legend
-                  #rmvSilent = TRUE,
-                  out= "grob",
-                  mutBurdenLayer = layer,
-                  plotMutBurden = FALSE) #
+myHierarchy<- data.table("mutation"=unique(driv.df$mutation), 
+                         color=brewer.pal(length(unique(driv.df$mutation)), "Set1"))
+
+plot <- GenVisR::Waterfall(driv.df,
+                           mutationHierarchy = myHierarchy,
+                           plotA = NULL,
+                           recurrence = 0,
+                           geneMax = 10,
+                           gridOverlay = FALSE,
+                           sampleNames = FALSE,
+                           drop = TRUE)
+#drawPlot(plot)
 
 # append to list
 plot.list <- append(plot.list,list(plot))
@@ -143,11 +144,13 @@ plot.list <- append(plot.list,list(plot))
 #######################################################################
 
 # save plots
-pdf(file = plot.file, onefile = TRUE, height = 10, width = 15)
+pdf(file = plot.file, onefile = TRUE, height = 10/2, width = 15/2)
 
 for (i in 1:length(plot.list)) {
-  grid::grid.newpage()
-  grid::grid.draw(plot.list[[i]])
+  drawPlot(plot.list[[i]])
+  
+  #grid::grid.newpage()
+  #grid::grid.draw(plot.list[[i]])
   
   #print(plot.list[[i]])
 }
