@@ -1,4 +1,4 @@
-# Script: sampleID included in analyses for SCANB
+# Script: sampleID included in analyses for SCANB and METABRIC
 # Author: Lennart Hohmann
 # Date: 01.01.2024
 #-------------------
@@ -7,7 +7,7 @@ rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
-cohort <- "SCANB"
+#cohort <- "SCANB"
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
@@ -23,6 +23,9 @@ outfile.color.palette <- "./data/Parameters/color_palette.RData"
 outfile.TNBC_sampleIDs <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData" 
 outfile.color.palette_TNBC <- "./data/Parameters/TNBC_color_palette.RData"
 
+################################################################################
+# SCAN-B
+################################################################################
 
 ################################################################################
 # ERpHER2n
@@ -71,3 +74,8 @@ save(TNBC_sampleIDs, file = outfile.TNBC_sampleIDs)
 # define color palette for plotting also
 color.palette_TNBC <- c("TNBC_NonBasal"="#fec44f","TNBC_Basal"="#FF2400","ERpHER2n_Basal"="#ba0606")
 save(color.palette_TNBC, file = outfile.color.palette_TNBC)
+
+################################################################################
+# METABRIC
+################################################################################
+
