@@ -106,21 +106,20 @@ fpkm.degs.lumb <- rownames(fpkm.degs.lumb.df)[order(fpkm.degs.lumb.df$Basal.LumB
 # counts.degs.lumb <- rownames(
 #   res.fpkm[res.counts$FDR.LumB <= 0.05 & abs(res.counts$logFC.LumB) > FC_cutoff,])
 
-length(intersect(fpkm.degs.luma,fpkm.degs.lumb)) 
+#length(intersect(fpkm.degs.luma,fpkm.degs.lumb)) 
 #length(intersect(counts.degs.luma,counts.degs.lumb)) 
 
 #######################################################################
 # Venn diagram
 #######################################################################
 
-# venn.plot <- venn.diagram(
-#   x = list(FPKM = intersect(fpkm.degs.luma,fpkm.degs.lumb), Counts = intersect(counts.degs.luma,counts.degs.lumb)),
-#   category.names = c("FPKM", "Counts"),
-#   filename = NULL
-# )
-# 
-# # Plot the Venn diagram
-# grid.draw(venn.plot)
+venn.plot <- venn.diagram(
+  x = list(LumA = fpkm.degs.luma, LumB = fpkm.degs.lumb),
+  category.names = c("LumA DEGs", "LumB DEGs"),
+  filename = NULL
+)
+
+plot.list <- append(plot.list, list(venn.plot))
 
 #######################################################################
 # Visualize results: Vulcano plots

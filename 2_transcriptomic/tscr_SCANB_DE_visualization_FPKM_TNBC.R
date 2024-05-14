@@ -108,14 +108,13 @@ length(intersect(fpkm.degs.bas,fpkm.degs.nonbas))
 # Venn diagram
 #######################################################################
 
-# venn.plot <- venn.diagram(
-#   x = list(FPKM = intersect(fpkm.degs.luma,fpkm.degs.lumb), Counts = intersect(counts.degs.luma,counts.degs.lumb)),
-#   category.names = c("FPKM", "Counts"),
-#   filename = NULL
-# )
-# 
-# # Plot the Venn diagram
-# grid.draw(venn.plot)
+venn.plot <- venn.diagram(
+  x = list(TNBC_Basal = fpkm.degs.bas, TNBC_NonBasal = fpkm.degs.nonbas),
+  category.names = c("TNBC_Basal DEGs", "TNBC_NonBasal DEGs"),
+  filename = NULL
+)
+
+plot.list <- append(plot.list, list(venn.plot))
 
 #######################################################################
 # Visualize results: Vulcano plots

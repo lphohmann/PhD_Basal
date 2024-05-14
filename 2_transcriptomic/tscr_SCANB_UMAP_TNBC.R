@@ -14,11 +14,11 @@ source("./scripts/src/general_functions.R")
 #source("./scripts/3_WGS/src/wgs_functions.R")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(umap,
-               #DESeq2,
+               DESeq2,
                edgeR,
                limma)
-if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
-BiocManager::install("DESeq2")
+#if (!require("BiocManager", quietly = TRUE)) install.packages("BiocManager")
+#BiocManager::install("DESeq2")
 #-------------------
 # set/create output directories
 # for plots
@@ -90,11 +90,14 @@ umap.dat.plot$Subtype <- anno$Subtype[match(rownames(umap.dat.plot),anno$Sample)
 # plot
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$Subtype, levels = names(color.palette))],
-     pch = 16, cex=2,
+     #pch = 16, 
+     pch = ifelse(umap.dat.plot$Subtype == "ERpHER2n_Basal", 17, ifelse(umap.dat.plot$Subtype == "TNBC_Basal", 18, 15)),
+     cex=2,
      main = paste0("FPKM UMAP all filtered genes n=",nrow(FPKM.dat)), 
      xlab = "UMAP1", ylab = "UMAP2")
-legend("topright", legend = names(color.palette), col = color.palette, 
-       pch = 16)
+legend("topright",legend = names(color.palette), col = color.palette, 
+       pch = c(15,18,17),
+       xpd = TRUE)
 
 plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
@@ -118,11 +121,13 @@ umap.dat.plot$Subtype <- anno$Subtype[match(rownames(umap.dat.plot),anno$Sample)
 # plot
 plot(umap.dat.plot$V1, umap.dat.plot$V2, 
      col = color.palette[factor(umap.dat.plot$Subtype, levels = names(color.palette))],
-     pch = 16, cex=2,
+     pch = ifelse(umap.dat.plot$Subtype == "ERpHER2n_Basal", 17, ifelse(umap.dat.plot$Subtype == "TNBC_Basal", 18, 15)),
+     cex=2,
      main = paste0("FPKM UMAP top most varying genes n=",nrow(FPKM.dat.filt)), 
      xlab = "UMAP1", ylab = "UMAP2")
 legend("topright", legend = names(color.palette), col = color.palette, 
-       pch = 16)
+       pch = c(15,18,17),
+       xpd = TRUE)
 
 plot <- recordPlot()
 plot.list <- append(plot.list, list(plot))
