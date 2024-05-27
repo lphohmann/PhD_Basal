@@ -78,4 +78,38 @@ save(color.palette_TNBC, file = outfile.color.palette_TNBC)
 ################################################################################
 # METABRIC
 ################################################################################
+in1 <- "./data/METABRIC/1_clinical/raw/Merged_annotations.RData"
+in2 <- "./data/METABRIC/2_transcriptomic/raw/data_mRNA_median_all_sample_Zscores.txt"
+
+
+file1 <- loadRData(in1)
+file2 <- read.table(in2,sep="\t",header=TRUE)
+
+View(head(file2))
+
+file1$Chemotherapy[is.na(file1$Chemotherapy)] <- 0
+file1$Endocrine[is.na(file1$Endocrine)] <- 0
+
+table(file1$PAM50)
+
+str(file1)
+
+sum(is.na(file1$ClinGroup))
+table(file1$ER_IHC_status)
+sum(is.na(file1$HER2_IHC_status))
+sum(is.na(file1$HER2_SNP6_state))
+sum(is.na(file1$PR.Expr))
+
+erp.dat <- file1[file1$HER2_amp == "no" & file1$ER_IHC_status =="pos",]
+table(erp.dat$PAM50)
+tnbc.dat <- file1[file1$HER2_amp == "no" & file1$ER_IHC_status =="neg",]
+
+50/sum(table(erp.dat$PAM50))
+
+# danenberg stuff
+
+in8 <- read.table("./data/METABRIC/Danenberg/MBTMEIMCPublic/SingleCells.csv",sep=",",header=TRUE)
+View(head(in8))
+
+
 

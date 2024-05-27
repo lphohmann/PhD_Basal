@@ -113,13 +113,13 @@ fpkm.degs.lumb <- rownames(fpkm.degs.lumb.df)[order(fpkm.degs.lumb.df$Basal.LumB
 # Venn diagram
 #######################################################################
 
-venn.plot <- venn.diagram(
+plot <- venn.diagram(
   x = list(LumA = fpkm.degs.luma, LumB = fpkm.degs.lumb),
   category.names = c("LumA DEGs", "LumB DEGs"),
   filename = NULL
 )
 
-plot.list <- append(plot.list, list(venn.plot))
+plot.list <- append(plot.list, list(plot))
 
 #######################################################################
 # Visualize results: Vulcano plots
@@ -285,7 +285,7 @@ goSEA <- enrichGO(
 plot <- cnetplot(goSEA, colorEdge = TRUE, cex_label_gene = 0.5)
 plot.list <- append(plot.list, list(plot))
 
-plot <- dotplot(goSEA)
+plot <- dotplot(goSEA, x = "Count",showCategory = 5)
 plot.list <- append(plot.list, list(plot))
 
 goSEA <- pairwise_termsim(goSEA)

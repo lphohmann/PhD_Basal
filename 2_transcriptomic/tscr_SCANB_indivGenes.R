@@ -55,7 +55,7 @@ gex.df <- gex.df[, unname(unlist(sampleIDs))]
 # analyses
 #######################################################################
 
-gene.vec <- c("AR","PGR","MAPK1","ERBB2","ESR1","EGFR","ACTR3B", "ANLN", "BAG1", "BCL2", "BIRC5", "BLVRA", "CCNB1", "CCNE1", "CDC20", "CDC6", "CDH3", "CENPF", "CEP55", "CXXC5", "EXO1", "FGFR4", "FOXA1", "FOXC1", "GPR160", "GRB7", "KIF2C", "KRT14", "KRT17", "KRT5", "MAPT", "MDM2", "MELK", "MIA", "MKI67", "MLPH", "MMP11", "MYBL2", "MYC", "NAT1", "NDC80", "NUF2", "PGR", "PHGDH", "PTTG1", "RRM2", "SFRP1", "SLC39A6", "TMEM45B", "TYMS", "UBE2C", "UBE2T",
+gene.vec <- c("AR","PGR","MAPK1","ERBB2","ESR1","EGFR","GATA3","ACTR3B", "ANLN", "BAG1", "BCL2", "BIRC5", "BLVRA", "CCNB1", "CCNE1", "CDC20", "CDC6", "CDH3", "CENPF", "CEP55", "CXXC5", "EXO1", "FGFR4", "FOXA1", "FOXC1", "GPR160", "GRB7", "KIF2C", "KRT14", "KRT17", "KRT5", "MAPT", "MDM2", "MELK", "MIA", "MKI67", "MLPH", "MMP11", "MYBL2", "MYC", "NAT1", "NDC80", "NUF2", "PGR", "PHGDH", "PTTG1", "RRM2", "SFRP1", "SLC39A6", "TMEM45B", "TYMS", "UBE2C", "UBE2T",
               "CARTPT","CST5","CHGB","CYP2A6","FDCSP","PHGR1", 
               "SLC6A4","SYNPO2L","CST9","TAT") #,"ORC6L"
 #setdiff(gene.vec, rownames(gex.df))
