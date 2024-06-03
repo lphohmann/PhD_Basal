@@ -110,6 +110,23 @@ tnbc.dat <- file1[file1$HER2_amp == "no" & file1$ER_IHC_status =="neg",]
 
 in8 <- read.table("./data/METABRIC/Danenberg/MBTMEIMCPublic/SingleCells.csv",sep=",",header=TRUE)
 View(head(in8))
+View(head(erp.dat))
 
+table(in8$cellPhenotype)
+# check how many case numbers
+#erp.dat$METABRIC_ID[erp.dat$PAM50 %in% c("Her2","Basal")]
+her2 <- in8[in8$metabric_id %in% 
+              erp.dat$METABRIC_ID[erp.dat$PAM50 =="Her2"],]
+length(unique(her2$metabric_id))
+basal <- in8[in8$metabric_id %in% 
+              erp.dat$METABRIC_ID[erp.dat$PAM50 =="Basal"],]
+length(unique(basal$metabric_id))
+# 
+x <- in8[c("ImageNumber","metabric_id")]
+x <- x[!duplicated(x), ]
+table(table(x$metabric_id))
 
-
+x <- in8[in8$metabric_id %in% erp.dat$METABRIC_ID[erp.dat$PAM50 %in% c("Her2","Basal")],
+         c("ImageNumber","metabric_id")]
+x <- x[!duplicated(x), ]
+table(table(x$metabric_id))
