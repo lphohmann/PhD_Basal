@@ -23,6 +23,8 @@ outfile.color.palette <- "./data/Parameters/color_palette.RData"
 outfile.TNBC_sampleIDs <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData" 
 outfile.color.palette_TNBC <- "./data/Parameters/TNBC_color_palette.RData"
 
+outfile.metabric.ERpHER2n_sampleIDs <- "./data/METABRIC/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+outfile.metabric.TNBC_sampleIDs <- "./data/METABRIC/0_GroupSamples/TNBC_sampleIDs.RData" 
 ################################################################################
 # SCAN-B
 ################################################################################
@@ -79,54 +81,29 @@ save(color.palette_TNBC, file = outfile.color.palette_TNBC)
 # METABRIC
 ################################################################################
 in1 <- "./data/METABRIC/1_clinical/raw/Merged_annotations.RData"
-in2 <- "./data/METABRIC/2_transcriptomic/raw/data_mRNA_median_all_sample_Zscores.txt"
-
-
 file1 <- loadRData(in1)
-file2 <- read.table(in2,sep="\t",header=TRUE)
+file1 <- file1[!is.na(file1$METABRIC_ID),]
 
-View(head(file2))
+#file1$Chemotherapy[is.na(file1$Chemotherapy)] <- 0
+#file1$Endocrine[is.na(file1$Endocrine)] <- 0
 
-file1$Chemotherapy[is.na(file1$Chemotherapy)] <- 0
-file1$Endocrine[is.na(file1$Endocrine)] <- 0
+erp.dat <- file1[which(file1$HER2_amp == "no" & file1$ER_IHC_status =="pos"),]
 
-table(file1$PAM50)
-
-str(file1)
-
-sum(is.na(file1$ClinGroup))
-table(file1$ER_IHC_status)
-sum(is.na(file1$HER2_IHC_status))
-sum(is.na(file1$HER2_SNP6_state))
-sum(is.na(file1$PR.Expr))
-
-erp.dat <- file1[file1$HER2_amp == "no" & file1$ER_IHC_status =="pos",]
 table(erp.dat$PAM50)
-tnbc.dat <- file1[file1$HER2_amp == "no" & file1$ER_IHC_status =="neg",]
 
-50/sum(table(erp.dat$PAM50))
+ERpHER2n_sampleIDs <- list(
+  "ERpHER2n_Basal"= erp.dat[which(erp.dat$PAM50=="Basal"),]$METABRIC_ID,
+  "ERpHER2n_HER2E"= erp.dat[which(erp.dat$PAM50=="Her2"),]$METABRIC_ID,
+  "ERpHER2n_LumA"= erp.dat[which(erp.dat$PAM50=="LumA"),]$METABRIC_ID,
+  "ERpHER2n_LumB"= erp.dat[which(erp.dat$PAM50=="LumB"),]$METABRIC_ID)
 
-# danenberg stuff
+save(ERpHER2n_sampleIDs, file = outfile.metabric.ERpHER2n_sampleIDs)
 
-in8 <- read.table("./data/METABRIC/Danenberg/MBTMEIMCPublic/SingleCells.csv",sep=",",header=TRUE)
-View(head(in8))
-View(head(erp.dat))
 
-table(in8$cellPhenotype)
-# check how many case numbers
-#erp.dat$METABRIC_ID[erp.dat$PAM50 %in% c("Her2","Basal")]
-her2 <- in8[in8$metabric_id %in% 
-              erp.dat$METABRIC_ID[erp.dat$PAM50 =="Her2"],]
-length(unique(her2$metabric_id))
-basal <- in8[in8$metabric_id %in% 
-              erp.dat$METABRIC_ID[erp.dat$PAM50 =="Basal"],]
-length(unique(basal$metabric_id))
+
+
 # 
-x <- in8[c("ImageNumber","metabric_id")]
-x <- x[!duplicated(x), ]
-table(table(x$metabric_id))
-
-x <- in8[in8$metabric_id %in% erp.dat$METABRIC_ID[erp.dat$PAM50 %in% c("Her2","Basal")],
-         c("ImageNumber","metabric_id")]
-x <- x[!duplicated(x), ]
-table(table(x$metabric_id))
+# tnbc.dat <- file1[which(file1$HER2_amp == "no" & file1$ER_IHC_status =="neg" & ),]
+# 
+# 
+# table(file1$PR.Expr)

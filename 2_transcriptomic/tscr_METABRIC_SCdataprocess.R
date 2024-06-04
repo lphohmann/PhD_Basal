@@ -20,7 +20,7 @@ if (!require("pacman")) install.packages("pacman")
 output.path <- "./output/2_transcriptomic/"
 dir.create(output.path)
 # for data
-data.path <- "./data/SCANB/2_transcriptomic/processed/"
+data.path <- "./data/METABRIC/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
