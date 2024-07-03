@@ -56,7 +56,6 @@ gex.dat <- read.table(infile.5,sep = "\t", header = TRUE)
 names(gex.dat)[3:ncol(gex.dat)] <- gsub("\\.", "-", 
                                         colnames(gex.dat)[3:ncol(gex.dat)])
 
-
 #######################################################################
 # check mRNA expression vs pt proportions
 #######################################################################
@@ -76,8 +75,8 @@ pt.plot <- function(pt.dat,gex.dat,pt,gene, plot.line=NULL) {
 }
 prop.dat$Phenotype
 
-pdf(file = plot.file, onefile = TRUE, paper = "a4", width = 8.3, height = 11.7) 
-par(mfrow = c(3, 2))
+pdf(file = plot.file, onefile = TRUE, width = 7, height = 7) 
+par(mfrow = c(3, 3))
 
 pt.plot(prop.dat,gex.dat,pt="CD8^{+} T cells",gene="CD8A")
 pt.plot(prop.dat,gex.dat,pt="CD4^{+} T cells",gene="CD4")
@@ -111,9 +110,63 @@ for(pt in unique(prop.dat$Phenotype)) {
 }
 
 #######################################################################
-# pam50 phenotype marker median boxplots regardless of phenotypes
+# pam50 phenotype count boxplots
 #######################################################################
 
+for(pt in unique(counts.dat$Phenotype)) {
+  pt.dat <- as.vector(counts.dat[which(counts.dat$Phenotype == pt),2:ncol(counts.dat)])
+  luma.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal A")]])
+  lumb.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal B")]])
+  her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
+  basal.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Basal")]])
+  
+  bp <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,
+                     Basal=basal.dat,Her2=her2e.dat),
+                col = color.palette,
+                names = names(color.palette),
+                ylab = paste0(pt," count"),
+                main = pt)
+  axis(3,at=1:length(bp$n),labels=bp$n)
+}
+
+#######################################################################
+# combine counts
+#######################################################################
+
+# combine cd4 dc8 mac bcells
+sum.rows <- c("CD4^{+} T cells",
+              "CD8^{+} T cells",
+              "Macrophages",
+              "B cells",
+              "CD4^{+} T cells & APCs",
+              "Macrophages & granulocytes")
+add.counts <- colSums(counts.dat[which(counts.dat$Phenotype %in% sum.rows),
+                   2:ncol(counts.dat)],na.rm = TRUE)
+add.prop <- colSums(prop.dat[which(prop.dat$Phenotype %in% sum.rows),
+                                 2:ncol(prop.dat)],na.rm = TRUE)
+combined.dat <- rbind(c("Comb.prop CD4,CD8,Mac,Bcell",add.prop), 
+                      c("Comb.count CD4,CD8,Mac,Bcell",add.counts))
+colnames(combined.dat)[1] <- "Phenotype"
+combined.dat <- as.data.frame(combined.dat)
+
+combined.dat[,-1] <- lapply(combined.dat[,-1], as.numeric)
+
+pt = unique(combined.dat$Phenotype)[1]
+for(pt in unique(combined.dat$Phenotype)) {
+  pt.dat <- as.vector(combined.dat[which(combined.dat$Phenotype == pt),2:ncol(combined.dat)])
+  luma.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal A")]])
+  lumb.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal B")]])
+  #her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
+  basal.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Basal")]])
+  
+  bp <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,
+                     Basal=basal.dat),#,Her2=her2e.dat),
+                col = color.palette,
+                names = names(color.palette)[1:3],
+                ylab = paste0(pt),
+                main = pt)
+  axis(3,at=1:length(bp$n),labels=bp$n)
+}
 
 #######################################################################
 # phenotype marker median boxplots
@@ -151,6 +204,9 @@ for (marker in markers) {
   boxplot(final.dat[2:ncol(final.dat)],las=2,ylab=marker,main=marker)
 }
 
+#######################################################################
+# boxplots with
+#######################################################################
 
 
 

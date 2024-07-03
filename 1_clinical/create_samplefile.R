@@ -38,6 +38,11 @@ all.samples <- loadRData(infile.1) %>%
   filter(HER2=="Negative") %>% 
   filter(NCN.PAM50 %in% c("LumA","LumB","Her2","Basal"))
 
+# check treatments
+#View(all.samples[which(all.samples$NCN.PAM50=="Her2"),])
+
+
+
 ERpHER2n_sampleIDs <- list(
   "ERpHER2n_Basal"= all.samples[which(all.samples$NCN.PAM50=="Basal"),]$Sample,
   "ERpHER2n_HER2E"= all.samples[which(all.samples$NCN.PAM50=="Her2"),]$Sample,

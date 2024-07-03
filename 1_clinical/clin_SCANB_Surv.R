@@ -456,8 +456,14 @@ plot.list <- append(plot.list,list(plot))
 ##########################
 
 # mv cox
-#exp(confint(main.all)) # the problem is that grade2/3 have infinite CI bounds
-main.all <- coxph(EC.surv~PAM50+Age+LN+TumSize, #+Grade
+#exp(confint(main.all)) # the problem is that grade 1 has no event
+# exclude and redefine surv object
+EC.dat <- EC.dat[which(EC.dat$Grade != 1),]
+EC.dat$Grade <- relevel(EC.dat$Grade, ref = "2")
+EC.dat$Grade <- droplevels(EC.dat$Grade)
+EC.surv <- Surv(EC.dat[[OM]], EC.dat[[OMbin]])
+#
+main.all <- coxph(EC.surv~PAM50+Age+LN+TumSize+Grade,
                   data=EC.dat) 
 res <- summary(main.all)
 plot <- ggforest(main.all,
