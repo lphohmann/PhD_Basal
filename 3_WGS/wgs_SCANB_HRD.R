@@ -54,12 +54,19 @@ hrd.dat <- read.table(infile.7, sep = ",", header = TRUE)
 hrd.dat <- hrd.dat[hrd.dat$Tumour %in% qc.samples,]
 hrd.dat$Lund.tumour.id <- gsub("\\..*", "", hrd.dat$Lund.tumour.id)
 
+
 # HRD calling
 hrd.dat$HRDetect <- ifelse(hrd.dat$Probability >= 0.7,"HRD-high","HRD-low")
 #head(hrd.dat)
 hrd.dat$PAM50 <- "Basal"
-hrd.dat <- hrd.dat[c("HRDetect","PAM50")]
 
+
+# save list of WGS basal samples
+wgs.basal.ids <- hrd.dat[c("Lund.tumour.id","Tumour","HRDetect")]
+save(wgs.basal.ids,
+     file="./data/SCANB/0_GroupSamples/ERpHER2nBasal_WGS_sampleIDs.RData")
+
+hrd.dat <- hrd.dat[c("HRDetect","PAM50")]
 #######################################################################
 # load and process BASIS data
 #######################################################################

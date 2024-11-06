@@ -101,7 +101,7 @@ points(jitter(rep(3, length(basal.dat)), amount = 0.2), basal.dat, col = rgb(0, 
 points(jitter(rep(4, length(tnbc.basal.1$INCA2_op_pad_erproc)), amount = 0.2), tnbc.basal.1$INCA2_op_pad_erproc, col = rgb(0, 0, 0, alpha = 0.7))
 
 axis(3,at=1:6,labels=c(sum(!is.na(luma.dat)),
-                       sum(!is.na(luma.dat)),
+                       sum(!is.na(lumb.dat)),
                        sum(!is.na(basal.dat)),
                        sum(!is.na(tnbc.basal.1$INCA2_op_pad_erproc)),
                        sum(!is.na(tnbc.basal.1.10$INCA2_op_pad_erproc)),

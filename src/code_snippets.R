@@ -301,3 +301,78 @@ untrace(ggforest)
 save(..., list = character(),
      file = stop("'file' must be specified"),
      ascii = FALSE, version = NULL)
+
+
+
+#######
+x1<-c(1,2,3)
+x2<-c(4,2,3)
+x3<-c(6,2,3)
+
+x <- c(x1,x2,x3)
+y <- list(x1,x2,x3)
+
+
+
+dat_to_excel <- function(sheet.ls, file_name) {
+  if (!require("writexl")) install.packages("writexl", dependencies = TRUE)
+  library(writexl)
+  # convert each list element into a df
+  df_list <- lapply(names(sheet.ls), function(group_name) {
+    data.frame(value = sheet.ls[[group_name]], group = group_name)
+  })
+  # rbind all 
+  final_df <- do.call(rbind, df_list)
+  # Write to an Excel file
+  write_xlsx(final_df, file_name)
+  cat("Data has been successfully written to", file_name, "\n")
+}
+
+
+
+
+save_dat <- function(dat.ls, name.vec) {
+  # Check if the length of the list and the vector of names are the same
+  if (length(dat.ls) != length(name.vec)) {
+    stop("The number of names must match the number of data vectors.")
+  }
+  # Create a named list
+  sheet.ls <- setNames(dat.ls, name.vec)
+  # Return the named list
+  return(sheet.ls)
+}
+
+# Define the groups to filter by
+groups <- c("Her2", "LumA", "LumB")
+
+# Use lapply to create data vectors and sample IDs for each group, with names
+results <- setNames(
+  lapply(groups, function(group) {
+    # Get the sample indices for the current group
+    indices <- anno$Sample[anno$NCN.PAM50 == group]
+    # Create the data vector and sample IDs
+    list(data_vector = as.numeric(as.vector(dat[indices])),
+         sample_ids = indices)
+    }), 
+  groups)
+
+View(results)
+
+
+
+# final
+
+#### save source data ####
+source_dat_path <- "./output/source_data/R_objects/"  
+groups <- c("Her2", "LumA", "LumB")
+results <- setNames(
+  lapply(groups, function(group) {
+    # Get the sample indices for the current group
+    indices <- anno$Sample[anno$NCN.PAM50 == group]
+    # Create the data vector and sample IDs
+    list(data_vector = as.vector(dat[indices]),
+         sample_ids = indices)
+  }), 
+  groups)
+saveRDS(results, paste0(source_dat_path,"OncoDX_score.RData")) # Save 
+#### exported source data ####
