@@ -33,7 +33,7 @@ dir.create(data.path)
 # input paths
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData" 
 infile.3 <- "./data/SCANB/2_transcriptomic/raw/genematrix_noNeg.Rdata" 
-infile.4 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
+#infile.4 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
 # output paths
 outfile.1 <- paste0(data.path,"ERp_LogScaled_gex.RData") # scaled gex
 outfile.2 <- paste0(data.path,"All_LogScaled_gex.RData")

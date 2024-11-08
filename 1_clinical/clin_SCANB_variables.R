@@ -289,7 +289,6 @@ h2low.df <- as.data.frame(cbind(variable,
 names(h2low.df) <- col.names
 h2low.df
 
-
 #######################################################################
 # PR status (2x2 contingency table)
 #######################################################################
