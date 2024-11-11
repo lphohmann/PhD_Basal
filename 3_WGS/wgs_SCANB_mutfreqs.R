@@ -25,14 +25,8 @@ data.path <- "./data/SCANB/3_WGS/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
-infile.3 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
-infile.4 <- "./data/BASIS/3_WGS/raw/Supplementary Table 14.Driver.Events.By.Mutation.Type.01052015.v2.xlsx"
-infile.5 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
-infile.6 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
+infile.1 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nAll.RData"
 infile.7 <- "./data/Parameters/color_palette.RData"
-
 # output paths
 plot.file <- paste0(output.path,cohort,"_mutfreqs.pdf")
 txt.file <- paste0(output.path,cohort,"_mutfreqs.txt")
@@ -46,45 +40,10 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-# load IDkey and correct sampleIDs -> ask Johan for key 
-id.key <- loadRData(infile.6)
-id.key <- id.key[c("Tumour","Specimen_id")]
-
 # load palette
 color.palette <- loadRData(infile.7)[c("LumA","LumB","Basal")]
 
-# wgs QC
-wgs.sum <- read_excel(infile.2, sheet = "Summary")
-wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
-qc.samples <- wgs.sum$Tumour[-grep("FAIL", wgs.sum$`Final QC`)]
-qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
-
-# driver data SCANB
-driv.scanb <- loadRData(infile.3)
-driv.scanb$PAM50 <- "Basal"
-
-# driver genes from BASIS LumA/LumB
-driv.basis <- as.data.frame(read_excel(infile.4, 
-                                       sheet = "COMBINED_EVENTS"))
-basis.anno <- loadRData(infile.5)
-basis.anno <- basis.anno[basis.anno$ClinicalGroup == "ERposHER2neg" & basis.anno$PAM50_AIMS %in% c("LumA","LumB"),]
-driv.basis <- driv.basis[driv.basis$Sample %in% basis.anno$sample_name,]
-driv.basis$PAM50 <- basis.anno$PAM50_AIMS[match(driv.basis$Sample,basis.anno$sample_name)]
-driv.basis$variant_class <- paste0(driv.basis$Mutation_Type,"_",driv.basis$Effect)
-driv.basis <- driv.basis[c("Sample","Gene","variant_class","PAM50")]
-names(driv.basis) <- names(driv.scanb)
-# exclude CopyNumber_HD & Complex_frameshift because these were not assessed in SCANB
-driv.basis <- driv.basis[driv.basis$variant_class %!in% 
-                              c("Complex_frameshift","CopyNumber_HD"),]
-
-#View(driv.basis)
-#View(basis.anno)
-#table(driv.basis$PAM50)
-
-# in one df
-#head(driv.scanb)
-#head(driv.basis)
-driv.dat <- as.data.frame(rbind(driv.scanb,driv.basis))
+driv.dat <- loadRData(infile.1)
 #View(driv.dat)
 
 # total sample counts to calc. mut freqs

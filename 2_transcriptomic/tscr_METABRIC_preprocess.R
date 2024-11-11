@@ -61,6 +61,9 @@ row.names(gex) <- gex$Hugo_Symbol
 gex$Hugo_Symbol <- NULL
 gex <- gex[, colnames(gex) %in% anno$METABRIC_ID]
 gex[] <- lapply(gex, as.numeric)
+#df_with_na <- gex[apply(gex, 1, function(row) any(is.na(row))), ]
+#View(df_with_na)
+gex <- na.omit(gex)
 
 #######################################################################
 # save

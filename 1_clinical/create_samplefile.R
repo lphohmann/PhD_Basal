@@ -123,7 +123,7 @@ erp.dat <- metabric.all[which(metabric.all$HER2_amp == "no" &
 table(erp.dat$PAM50)
 ERpHER2n_sampleIDs.mb <- list(
   "ERpHER2n_Basal"= erp.dat[which(erp.dat$PAM50=="Basal"),]$METABRIC_ID,
-  "ERpHER2n_HER2E"= erp.dat[which(erp.dat$PAM50=="Her2"),]$METABRIC_ID,
+  #"ERpHER2n_HER2E"= erp.dat[which(erp.dat$PAM50=="Her2"),]$METABRIC_ID,
   "ERpHER2n_LumA"= erp.dat[which(erp.dat$PAM50=="LumA"),]$METABRIC_ID,
   "ERpHER2n_LumB"= erp.dat[which(erp.dat$PAM50=="LumB"),]$METABRIC_ID)
 
