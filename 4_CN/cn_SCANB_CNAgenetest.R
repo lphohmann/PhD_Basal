@@ -25,7 +25,7 @@ dir.create(data.path)
 #-------------------
 # input paths
 infile.1 <- "./data/SCANB/4_CN/processed/CNA_genelevel_all.RData"
-infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
+#infile.2 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData"
 # output paths
 outfile.1 <- paste0(data.path,"CNA_genetest.RData")
 #plot.file <- paste0(output.path,cohort,"_i.pdf")

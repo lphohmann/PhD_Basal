@@ -34,6 +34,7 @@ infile.8 <- "./data/BASIS/1_clinical/raw/Summarized_Annotations_BASIS.RData"
 # output paths
 outfile.1 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
 outfile.2 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nAll.RData"
+outfile.3 <- "./data/SCANB/3_WGS/processed/driver_HugoSymbols.RData"
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -73,7 +74,7 @@ driv.rearr <- driv.rearr[driv.rearr$sample %in% qc.samples,]
 driv.rearr$sample <- id.key$Specimen_id[match(driv.rearr$sample,id.key$Tumour)]
 driv.rearr[driv.rearr == "_"] <- NA
 # where gene1 != gene2 i duplicate the row 
-driv.rearr <- melt(driv.rearr[c("sample","gene1","gene2","svclass")], id.vars = c("sample", "svclass"), measure.vars = c("gene1", "gene2"), variable.name = "gene_type", value.name = "gene")
+driv.rearr <- reshape2::melt(driv.rearr[c("sample","gene1","gene2","svclass")], id.vars = c("sample", "svclass"), measure.vars = c("gene1", "gene2"), variable.name = "gene_type", value.name = "gene")
 driv.rearr <- driv.rearr[!is.na(driv.rearr$gene),]
 driv.rearr <- driv.rearr[c("sample","gene","svclass")]
 names(driv.rearr) <- c("Sample","VD_Gene","VC")
@@ -84,7 +85,7 @@ amp.drivers <- as.data.frame(read_excel(infile.4, sheet = "CopyNumber"))
 driver.genes <- unique(c(amp.drivers$Gene,driv.indel$VD_Gene,driv.point$VD_Gene,
                          driv.rearr$VD_Gene))
 driver.genes <- ifelse(driver.genes == "Chr8:(ZNF703/FGFR1)", "ZNF703", driver.genes)
-
+save(driver.genes, file=outfile.3)
 # amplification status
 cna.genes <- loadRData(infile.5)
 names(cna.genes) <- gsub("\\..*", "", names(cna.genes))
