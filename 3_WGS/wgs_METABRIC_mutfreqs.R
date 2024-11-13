@@ -50,6 +50,10 @@ driv.dat <- loadRData(infile.1)
 pam50.counts <- table(
   driv.dat[!duplicated(driv.dat[,c("sample")]),]$PAM50)
 
+# need to calc based on all samples that have mut info, not only ones with driver alterations
+#Basal 45  LumA 614  LumB 397
+pam50.counts[] <- c(45,614,397)
+
 #######################################################################
 # plot and stats
 #######################################################################

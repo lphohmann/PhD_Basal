@@ -46,9 +46,12 @@ color.palette <- loadRData(infile.7)[c("LumA","LumB","Basal")]
 driv.dat <- loadRData(infile.1)
 #View(driv.dat)
 
-# total sample counts to calc. mut freqs
-pam50.counts <- table(
-  driv.dat[!duplicated(driv.dat[,c("sample")]),]$PAM50)
+# total sample counts to calc. mut freqs (only works if all samples do have at least 1 mutation)
+#pam50.counts <- table(
+#  driv.dat[!duplicated(driv.dat[,c("sample")]),]$PAM50)
+
+# need to calc based on all samples that have mut info, not only ones with driver alterations
+pam50.counts[] <- c(16,73,105)
 
 #######################################################################
 # plot and stats

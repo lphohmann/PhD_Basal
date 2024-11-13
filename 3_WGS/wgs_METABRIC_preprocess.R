@@ -26,6 +26,7 @@ infile.1 <- "./data/METABRIC/3_WGS/raw/data_mutations_extended.txt"
 infile.2 <- "./data/METABRIC/4_CN/raw/data_CNA.txt"
 infile.3 <- "./data/METABRIC/1_clinical/raw/Merged_annotations.RData"
 infile.4 <- "./data/SCANB/3_WGS/processed/driver_HugoSymbols.RData"
+infile.5 <- "./data/METABRIC/0_GroupSamples/TNBC_sampleIDs.RData"
 # output paths
 outfile.1 <- "./data/METABRIC/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
 outfile.2 <- "./data/METABRIC/3_WGS/processed/drivermutations_All.RData"
@@ -43,6 +44,7 @@ plot.parameters <- list() # object to store parameters to plot base R plots agai
 
 # 
 sample.IDs.erp <- loadRData(infile.0)
+sample.IDs.tnbc <- loadRData(infile.5)
 
 # load annotation data and select 
 anno <- loadRData(infile.3)
@@ -88,6 +90,15 @@ amp.genes$variant_class <- "CN_amp"
 amp.genes$PAM50 <- anno$PAM50[match(amp.genes$sample, anno$METABRIC_ID)]
 amp.genes$Value <- NULL
 row.names(amp.genes) <- NULL
+
+# count sample n for mut freq calc.
+head(amp.genes)
+unique_ids <- amp.genes[!duplicated(amp.genes$sample), ]
+unique_ids.erp <- unique_ids[unique_ids$sample%in% unname(unlist(sample.IDs.erp)),]
+table(unique_ids.erp$PAM50) #Basal 45  LumA 614  LumB 397 
+unique_ids.tnbc <- unique_ids[unique_ids$sample%in% unname(unlist(sample.IDs.tnbc)),]
+table(unique_ids.tnbc$PAM50) # check in sample file, here no LumBs?
+
 #table(unlist(as.data.frame(cn.data))) # -2       -1        0        1        2 
 # get same format as scanb
 cn.data[cn.data < -1] <- -1
@@ -119,9 +130,10 @@ mut.data <- mut.data[mut.data$Tumor_Sample_Barcode %in% anno$METABRIC_ID,]
 names(mut.data) <- c("gene","variant_class","sample")
 mut.data <- mut.data[c("sample","gene","variant_class")]
 mut.data$PAM50 <- anno$PAM50[match(mut.data$sample, anno$METABRIC_ID)]
-# filter genes to be same list as in scanb
+# filter amp genes and then rbind
+
 mut.data <- rbind(mut.data,amp.genes)
-mut.data <- mut.data[mut.data$gene %in% driver.genes,] # for mut burden change this step
+mut.data <- mut.data[mut.data$gene %in% driver.genes,] #  for mut burden change this step
 #head(mut.data)
 save(mut.data, file = outfile.2)
 
