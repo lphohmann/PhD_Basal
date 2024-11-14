@@ -32,6 +32,7 @@ outfile.1 <- "./data/METABRIC/3_WGS/processed/drivermutations_ERpHER2nBasal.RDat
 outfile.2 <- "./data/METABRIC/3_WGS/processed/drivermutations_All.RData"
 outfile.3 <- "./data/METABRIC/4_CN/processed/CNA_genelevel_all.RData"
 outfile.4 <- "./data/METABRIC/3_WGS/processed/drivermutations_ERpHER2nAll.RData"
+outfile.5 <- "./data/METABRIC/4_CN/processed/CNA_GLFreqs_ERpHER2nAll.RData"
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -114,6 +115,34 @@ cn.data <- cn.data[, c(c("gene","chr","start","end"),
 save(cn.data, file=outfile.3)
 #sampleIDs.erp <- loadRData(infile.0)
 #cn.data.erp <- cn.data[,names(cn.data) %in% c(unname(unlist(sampleIDs.erp))]
+
+# calc gain loss freqs
+
+# data frame to store results
+CNA.freqs <- cn.data[, c("gene", "chr", "start", "end")]
+# Function to calculate frequency of gain and loss for a given set of sample IDs
+calculate_freqs <- function(data, sample_ids) {
+  # Subset the data to include only columns for the provided sample IDs
+  data_subset <- data[, sample_ids, drop = FALSE]
+  # Calculate frequency of losses (-1) and gains (1) per gene
+  freqloss <- apply(data_subset, 1, function(x) (length(which(x == -1)) / length(sample_ids)) * -100)
+  freqgain <- apply(data_subset, 1, function(x) (length(which(x == 1)) / length(sample_ids)) * 100)
+  return(list(freqloss = freqloss, freqgain = freqgain))
+}
+
+# Iterate over each subtype in sample.IDs.erp to calculate and add frequencies to CNA.freqs
+for (subtype in names(sample.IDs.erp)) {
+  sample_ids <- sample.IDs.erp[[subtype]]  # Get sample IDs for the current subtype
+  # Calculate frequencies
+  freqs <- calculate_freqs(cn.data[, 5:ncol(cn.data)], sample_ids)  
+  # Add frequency columns to CNA.freqs with appropriate naming
+  CNA.freqs[[paste0("freqloss.", subtype)]] <- freqs$freqloss
+  CNA.freqs[[paste0("freqgain.", subtype)]] <- freqs$freqgain
+}
+
+# View the result
+save(CNA.freqs, file=outfile.5)
+
 
 #######################################################################
 # mutational data

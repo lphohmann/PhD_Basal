@@ -1,4 +1,4 @@
-# Script: Create summarized CNA files for SCANB/BASIS and Calc. CNA Frequencies in SCAN-B
+# Script: Create summarized CNA files for METABRIC and Calc. CNA Frequencies in SCAN-B
 # Author: Lennart Hohmann
 # Date: 11.02.2024
 #-------------------
