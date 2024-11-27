@@ -129,7 +129,7 @@ subtype.counts <- table(
 #######################################################################
 
 # genes to plot/test
-genes <- c("TP53","MYC","PIK3CA","BRCA2","ESR1")
+genes <- c("TP53","MYC","PIK3CA","BRCA2","ESR1","RB1","PTEN")
 for (gene in genes) {
   #print(gene)
   txt.out <- append(txt.out, c("\n",gene,"\n",

@@ -33,6 +33,9 @@ outfile.2 <- "./data/METABRIC/3_WGS/processed/drivermutations_All.RData"
 outfile.3 <- "./data/METABRIC/4_CN/processed/CNA_genelevel_all.RData"
 outfile.4 <- "./data/METABRIC/3_WGS/processed/drivermutations_ERpHER2nAll.RData"
 outfile.5 <- "./data/METABRIC/4_CN/processed/CNA_GLFreqs_ERpHER2nAll.RData"
+outfile.6 <- "./data/METABRIC/4_CN/processed/CNA_GLFreqs_TNBC.RData"
+outfile.7 <- "./data/METABRIC/3_WGS/processed/drivermutations_TNBC.RData"
+
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -118,8 +121,7 @@ save(cn.data, file=outfile.3)
 
 # calc gain loss freqs
 
-# data frame to store results
-CNA.freqs <- cn.data[, c("gene", "chr", "start", "end")]
+
 # Function to calculate frequency of gain and loss for a given set of sample IDs
 calculate_freqs <- function(data, sample_ids) {
   # Subset the data to include only columns for the provided sample IDs
@@ -130,6 +132,8 @@ calculate_freqs <- function(data, sample_ids) {
   return(list(freqloss = freqloss, freqgain = freqgain))
 }
 
+# data frame to store results
+CNA.freqs <- cn.data[, c("gene", "chr", "start", "end")]
 # Iterate over each subtype in sample.IDs.erp to calculate and add frequencies to CNA.freqs
 for (subtype in names(sample.IDs.erp)) {
   sample_ids <- sample.IDs.erp[[subtype]]  # Get sample IDs for the current subtype
@@ -143,6 +147,22 @@ for (subtype in names(sample.IDs.erp)) {
 # View the result
 save(CNA.freqs, file=outfile.5)
 
+# same for tnbc
+
+# data frame to store results
+CNA.freqs <- cn.data[, c("gene", "chr", "start", "end")]
+# Iterate over each subtype in sample.IDs.tnbc to calculate and add frequencies to CNA.freqs
+for (subtype in names(sample.IDs.tnbc)) {
+  sample_ids <- sample.IDs.tnbc[[subtype]]  # Get sample IDs for the current subtype
+  # Calculate frequencies
+  freqs <- calculate_freqs(cn.data[, 5:ncol(cn.data)], sample_ids)  
+  # Add frequency columns to CNA.freqs with appropriate naming
+  CNA.freqs[[paste0("freqloss.", subtype)]] <- freqs$freqloss
+  CNA.freqs[[paste0("freqgain.", subtype)]] <- freqs$freqgain
+}
+
+# View the result
+save(CNA.freqs, file=outfile.6)
 
 #######################################################################
 # mutational data
@@ -173,3 +193,7 @@ save(mut.data.basal, file = outfile.1)
 
 mut.data.ERpAll <- mut.data[mut.data$sample %in% unname(unlist(sample.IDs.erp)),]
 save(mut.data.ERpAll, file = outfile.4)
+
+
+mut.data.TNBC <- mut.data[mut.data$sample %in% unname(unlist(sample.IDs.tnbc)),]
+save(mut.data.TNBC, file = outfile.7)

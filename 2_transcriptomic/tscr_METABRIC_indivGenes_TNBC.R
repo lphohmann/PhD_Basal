@@ -1,36 +1,36 @@
-# Script: Plotting and testing expression of indiv. selected genes in SCAN-B
+# Script: Plotting and testing expression of indiv. selected genes in METABRIC TNBC
 # Author: Lennart Hohmann
-# Date: 08.01.2024
+# Date: 22.11.2024
 #-------------------
 # empty environment 
 rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
-cohort <- "SCANB"
+cohort <- "METABRIC"
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
 source("./scripts/2_transcriptomic/src/tscr_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(ggplot2,
-               tidyverse)
+# pacman::p_load(ggplot2,
+#                tidyverse)
 #-------------------
 # set/create output directories
 # for plots
 output.path <- "./output/2_transcriptomic/"
 dir.create(output.path)
 # for data
-data.path <- "./data/SCANB/2_transcriptomic/processed/"
+data.path <- "./data/METABRIC/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-infile.1 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
-infile.2 <- "./data/Parameters/color_palette.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
+infile.1 <- "./data/METABRIC/0_GroupSamples/TNBC_sampleIDs.RData"
+infile.2 <- "./data/Parameters/TNBC_color_palette.RData"
+infile.3 <- "./data/METABRIC/2_transcriptomic/processed/All_LogScaled_gex.RData"
 # output paths
-plot.file <- paste0(output.path,cohort,"_indivGenes.pdf")
-txt.file <- paste0(output.path,cohort,"_indivGenes.txt")
+plot.file <- paste0(output.path,cohort,"_indivGenes_TNBC.pdf")
+txt.file <- paste0(output.path,cohort,"_indivGenes_TNBC.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -42,24 +42,24 @@ txt.out <- c() # object to store text output, if the output is not in string for
 #######################################################################
 
 # load sampleIDs
-sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+sampleIDs <- loadRData(infile.1)[c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")]
 
 # load palette
-color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
+color.palette <- loadRData(infile.2)[c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")]
 
 # load gex
 gex.df <- loadRData(infile.3)
-gex.df <- gex.df[, unname(unlist(sampleIDs))]
+gex.df <- gex.df[, colnames(gex.df) %in% unname(unlist(sampleIDs))]
 
 #######################################################################
 # analyses
 #######################################################################
 
-gene.vec <- c("AR","PGR","MAPK1","ERBB2","ESR1","EGFR","GATA3", "FOXA1", "FOXC1", "HORMAD1") 
+gene.vec <- c("AR","PGR","MAPK1","ERBB2","ESR1","EGFR","GATA3", "FOXA1", "FOXC1") 
 #setdiff(gene.vec, rownames(gex.df))
-
+#gene <- "AR"
 for (gene in gene.vec) {
-  
+  print(gene)
   txt.out <- append(txt.out, c("\n",gene,"\n",
                                "\n###########################################\n"))
   
@@ -67,36 +67,38 @@ for (gene in gene.vec) {
   
   # subtype data
   basal.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
-  luma.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
-  lumb.dat <- as.numeric(as.vector(
-    gene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
+    gene.gex[, colnames(gex.df) %in% unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
+  tnbc.basal.dat <- as.numeric(as.vector(
+    gene.gex[, colnames(gex.df) %in% unname(unlist(sampleIDs["TNBC_Basal"]))]))
+  tnbc.nonbasal.dat <- as.numeric(as.vector(
+    gene.gex[, colnames(gex.df) %in% unname(unlist(sampleIDs["TNBC_NonBasal"]))]))
   
   # summary statistics
   basal.stats <- get_stats(basal.dat)
-  luma.stats <- get_stats(luma.dat)
-  lumb.stats <- get_stats(lumb.dat)
+  tnbc.basal.stats <- get_stats(tnbc.basal.dat)
+  tnbc.nonbasal.stats <- get_stats(tnbc.nonbasal.dat)
   
-  txt.out <- append(txt.out, c("Basal\n",capture.output(basal.stats), "\n",
-                               "LumA\n",capture.output(luma.stats), "\n",
-                               "LumB\n",capture.output(lumb.stats),
+  txt.out <- append(txt.out, c("ERpHER2n_Basal\n",capture.output(basal.stats), "\n",
+                               "TNBC_Basal\n",capture.output(tnbc.basal.stats), "\n",
+                               "TNBC_NonBasal\n",capture.output(tnbc.nonbasal.stats),
                                "\n###########################################\n"))
   
   # mann whitney u tests
-  luma.res <- wilcox.test(basal.dat, luma.dat)
-  lumb.res <- wilcox.test(basal.dat, lumb.dat)
+  tnbc.basal.res <- wilcox.test(basal.dat, tnbc.basal.dat)
+  tnbc.nonbasal.res <- wilcox.test(basal.dat, tnbc.nonbasal.dat)
   
-  txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
-  txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(tnbc.basal.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(tnbc.nonbasal.res), "\n###########################################\n"))
   
-  # plot
+  # plot c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")
   plot.par <- list(
-                   data = list(LumA=luma.dat,LumB=lumb.dat,Basal=basal.dat), 
-                   col = color.palette, 
-                   names = names(color.palette),
-                   ylab = "mRNA expression (log2)",
-                   main = gene)
+    data = list(TNBC_NonBasal=tnbc.nonbasal.dat,
+                TNBC_Basal=tnbc.basal.dat,
+                ERpHER2n_Basal=basal.dat), 
+    col = color.palette, 
+    names = names(color.palette),
+    ylab = "mRNA expression (log2)",
+    main = gene)
   # boxplot(plot_parameters$data, 
   #         col = plot_parameters$col,
   #         names = plot_parameters$names,
@@ -107,6 +109,7 @@ for (gene in gene.vec) {
   plot.parameters <- append(plot.parameters, list(plot.par))
   #plot.list <- append(plot.list, list(plot))
 }
+
 #######################################################################
 
 # save plots

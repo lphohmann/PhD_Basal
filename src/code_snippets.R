@@ -376,3 +376,10 @@ results <- setNames(
   groups)
 saveRDS(results, paste0(source_dat_path,"OncoDX_score.RData")) # Save 
 #### exported source data ####
+
+
+x <- TNBC_sampleIDs.metabric[c("TNBC_Basal","TNBC_NonBasal")]
+lapply(x,length)
+sum(unlist(lapply(x,length)))
+(unlist(lapply(x,length)) / sum(unlist(lapply(x,length)))) * 100
+round((unlist(lapply(x,length)) / sum(unlist(lapply(x,length)))) * 100)

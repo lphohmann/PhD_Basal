@@ -55,7 +55,7 @@ gex.df <- gex.df[, unname(unlist(sampleIDs))]
 # analyses
 #######################################################################
 
-gene.vec <- c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1")
+gene.vec <- c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1","FOXC1")
 #setdiff(gene.vec, rownames(gex.df))
 #gene <- "ESR1"
 for (gene in gene.vec) {

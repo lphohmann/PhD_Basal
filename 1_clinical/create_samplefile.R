@@ -25,7 +25,6 @@ infile.4 <- "./data/SCANB/0_GroupSamples/ERpHER2nBasal_WGS_sampleIDs.RData"
 # output paths
 outfile.color.palette <- "./data/Parameters/color_palette.RData"
 outfile.color.palette_TNBC <- "./data/Parameters/TNBC_color_palette.RData"
-
 outfile.scanb.ERpHER2n_sampleIDs <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData" 
 outfile.scanb.TNBC_sampleIDs <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData" 
 
@@ -55,7 +54,7 @@ all.samples <- loadRData(infile.1) %>%
   filter(Follow.up.cohort==TRUE) %>% 
   filter(ER=="Positive") %>% 
   filter(HER2=="Negative") %>% 
-  filter(NCN.PAM50 %in% c("LumA","LumB","Her2","Basal"))
+  filter(NCN.PAM50 %in% c("LumA","LumB","Basal"))
 
 # check treatments
 #View(all.samples[which(all.samples$NCN.PAM50=="Her2"),])
