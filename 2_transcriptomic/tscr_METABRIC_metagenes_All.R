@@ -1,4 +1,4 @@
-# Script: All part - Plotting and testing expression of metagenes in SCAN-B
+# Script: All part - Plotting and testing expression of metagenes in MB
 # Author: Lennart Hohmann
 # Date: 08.01.2024
 #-------------------
@@ -7,7 +7,7 @@ rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
-cohort <- "SCANB"
+cohort <- "METABRIC"
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
@@ -20,19 +20,18 @@ pacman::p_load(readxl)
 output.path <- "./output/2_transcriptomic/"
 dir.create(output.path)
 # for data
-data.path <- "./data/SCANB/2_transcriptomic/processed/"
+data.path <- "./data/METABRIC/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-
 infile.0 <- "./data/SCANB/2_transcriptomic/raw/metagene_definitions.XLSX"
-infile.1 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
+infile.1 <- "./data/METABRIC/0_GroupSamples/TNBC_sampleIDs.RData"
 infile.2 <- "./data/Parameters/TNBC_color_palette.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/processed/All_LogScaled_gex.RData" # Scaled mRNA expression
-infile.4 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+infile.3 <- "./data/METABRIC/2_transcriptomic/processed/All_LogScaled_gex.RData" # Scaled mRNA expression
+infile.4 <- "./data/METABRIC/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.5 <- "./data/Parameters/color_palette.RData"
 # output paths
-outfile.1 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores_All.RData"
+outfile.1 <- "./data/METABRIC/2_transcriptomic/processed/Metagene_scores_All.RData"
 plot.file <- paste0(output.path,cohort,"_metagenes_All.pdf")
 txt.file <- paste0(output.path,cohort,"_metagenes_All.txt")
 #-------------------
@@ -64,7 +63,7 @@ names(color.palette)[names(color.palette) == "LumB"] <- "ERpHER2n_LumB"
 
 # load gex
 gex.df <- loadRData(infile.3)
-gex.df <- gex.df[, unname(unlist(sampleIDs))]
+gex.df <- gex.df[, colnames(gex.df) %in% unname(unlist(sampleIDs))]
 
 #######################################################################
 # calc. sample metagene scores
@@ -101,15 +100,15 @@ for (metagene in metagenes) {
   
   # subtype data
   basal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
+    metagene.gex[, colnames(metagene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
   luma.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
+    metagene.gex[, colnames(metagene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
   lumb.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
+    metagene.gex[, colnames(metagene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
   tnbc.basal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["TNBC_Basal"]))]))
+    metagene.gex[, colnames(metagene.gex) %in% unname(unlist(sampleIDs["TNBC_Basal"]))]))
   tnbc.nonbasal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["TNBC_NonBasal"]))]))
+    metagene.gex[, colnames(metagene.gex) %in% unname(unlist(sampleIDs["TNBC_NonBasal"]))]))
   
   # summary statistics
   basal.stats <- get_stats(basal.dat)

@@ -1,40 +1,38 @@
-# Script: All part - Plotting and testing expression of metagenes in SCAN-B
+# Script: Plotting and testing expression of indiv. selected genes in METABRIC
 # Author: Lennart Hohmann
-# Date: 08.01.2024
+# Date: 27.01.2024
 #-------------------
 # empty environment 
 rm(list=ls())
 # set working directory to the project directory
 setwd("~/PhD_Workspace/Project_Basal/")
 # cohort
-cohort <- "SCANB"
+cohort <- "METABRIC"
 #-------------------
 # packages
 source("./scripts/src/general_functions.R")
 source("./scripts/2_transcriptomic/src/tscr_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(readxl)
+# pacman::p_load(ggplot2,
+#                tidyverse)
 #-------------------
 # set/create output directories
 # for plots
 output.path <- "./output/2_transcriptomic/"
 dir.create(output.path)
 # for data
-data.path <- "./data/SCANB/2_transcriptomic/processed/"
+data.path <- "./data/METABRIC/2_transcriptomic/processed/"
 dir.create(data.path)
 #-------------------
 # input paths
-
-infile.0 <- "./data/SCANB/2_transcriptomic/raw/metagene_definitions.XLSX"
-infile.1 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
+infile.1 <- "./data/METABRIC/0_GroupSamples/TNBC_sampleIDs.RData"
 infile.2 <- "./data/Parameters/TNBC_color_palette.RData"
-infile.3 <- "./data/SCANB/2_transcriptomic/processed/All_LogScaled_gex.RData" # Scaled mRNA expression
-infile.4 <- "./data/SCANB/0_GroupSamples/ERpHER2n_sampleIDs.RData"
+infile.3 <- "./data/METABRIC/2_transcriptomic/processed/All_LogScaled_gex.RData"
+infile.4 <- "./data/METABRIC/0_GroupSamples/ERpHER2n_sampleIDs.RData"
 infile.5 <- "./data/Parameters/color_palette.RData"
 # output paths
-outfile.1 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores_All.RData"
-plot.file <- paste0(output.path,cohort,"_metagenes_All.pdf")
-txt.file <- paste0(output.path,cohort,"_metagenes_All.txt")
+plot.file <- paste0(output.path,cohort,"_indivGenes_All.pdf")
+txt.file <- paste0(output.path,cohort,"_indivGenes_All.txt")
 #-------------------
 # storing objects 
 plot.list <- list() # object to store plots
@@ -44,10 +42,6 @@ txt.out <- c() # object to store text output, if the output is not in string for
 #######################################################################
 # load data
 #######################################################################
-
-# metagene definitions
-metagene.def <- as.data.frame(read_excel(infile.0)) 
-colnames(metagene.def) <- c("Module","Gene","Entrez_ID")
 
 # load sampleIDs
 sampleIDs.1 <- loadRData(infile.1)[c("ERpHER2n_Basal", "TNBC_NonBasal", "TNBC_Basal")]
@@ -64,52 +58,32 @@ names(color.palette)[names(color.palette) == "LumB"] <- "ERpHER2n_LumB"
 
 # load gex
 gex.df <- loadRData(infile.3)
-gex.df <- gex.df[, unname(unlist(sampleIDs))]
+gex.df <- gex.df[, colnames(gex.df) %in% unname(unlist(sampleIDs))]
 
 #######################################################################
-# calc. sample metagene scores
+# analyses
 #######################################################################
 
-metagenes <- unique(metagene.def$Module)
-# for each sample calc. a score (mean) for each metagene
-mg.scores <- apply(gex.df, 2, function(x) {
-  res <- c()
-  for (i in seq_along(metagenes)) {
-    mg.genes <- metagene.def[metagene.def$Module==metagenes[i],"Gene"]
-    mg.gex <- x[mg.genes]
-    res[i] <- mean(mg.gex,na.rm=TRUE)
-  }
-  return(res)
-})
+gene.vec <- c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1","FOXC1")
 
-rownames(mg.scores) <- metagenes
-mg.scores <- as.data.frame(mg.scores)
-save(mg.scores,file=outfile.1)
-
-#View(mg.scores)
-
-#######################################################################
-# test and plot
-#######################################################################
-
-for (metagene in metagenes) {
-  
-  txt.out <- append(txt.out, c("\n",metagene,"\n",
+for (gene in gene.vec) {
+  print(gene)
+  txt.out <- append(txt.out, c("\n",gene,"\n",
                                "\n###########################################\n"))
   
-  metagene.gex <- mg.scores[metagene,] 
+  gene.gex <- gex.df[gene,] 
   
   # subtype data
   basal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
+    gene.gex[, colnames(gene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_Basal"]))]))
   luma.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
+    gene.gex[, colnames(gene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_LumA"]))]))
   lumb.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
+    gene.gex[, colnames(gene.gex) %in% unname(unlist(sampleIDs["ERpHER2n_LumB"]))]))
   tnbc.basal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["TNBC_Basal"]))]))
+    gene.gex[, colnames(gene.gex) %in% unname(unlist(sampleIDs["TNBC_Basal"]))]))
   tnbc.nonbasal.dat <- as.numeric(as.vector(
-    metagene.gex[, unname(unlist(sampleIDs["TNBC_NonBasal"]))]))
+    gene.gex[, colnames(gene.gex) %in% unname(unlist(sampleIDs["TNBC_NonBasal"]))]))
   
   # summary statistics
   basal.stats <- get_stats(basal.dat)
@@ -136,21 +110,21 @@ for (metagene in metagenes) {
   txt.out <- append(txt.out, c(capture.output(tnbc.basal.res), "\n###########################################\n"))
   txt.out <- append(txt.out, c(capture.output(tnbc.nonbasal.res), "\n###########################################\n"))
   
-  # plot
+  # plot c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")
   plot.par <- list(
-    data = list(ERpHER2n_LumA=luma.dat,
-                ERpHER2n_LumB=lumb.dat,
-                ERpHER2n_Basal=basal.dat,
-                TNBC_Basal=tnbc.basal.dat,
-                TNBC_NonBasal=tnbc.nonbasal.dat), 
-    col = color.palette[c("ERpHER2n_LumA","ERpHER2n_LumB",
-                          "ERpHER2n_Basal","TNBC_Basal",
-                          "TNBC_NonBasal")], 
-    names = c("ERpHER2n_LumA","ERpHER2n_LumB",
-              "ERpHER2n_Basal","TNBC_Basal",
-              "TNBC_NonBasal"),
-    ylab = "metagene score",
-    main = metagene)
+                   data = list(ERpHER2n_LumA=luma.dat,
+                               ERpHER2n_LumB=lumb.dat,
+                               ERpHER2n_Basal=basal.dat,
+                               TNBC_Basal=tnbc.basal.dat,
+                               TNBC_NonBasal=tnbc.nonbasal.dat), 
+                   col = color.palette[c("ERpHER2n_LumA","ERpHER2n_LumB",
+                                         "ERpHER2n_Basal","TNBC_Basal",
+                                         "TNBC_NonBasal")], 
+                   names = c("ERpHER2n_LumA","ERpHER2n_LumB",
+                             "ERpHER2n_Basal","TNBC_Basal",
+                             "TNBC_NonBasal"),
+                   ylab = "mRNA expression (log2)",
+                   main = gene)
   # boxplot(plot_parameters$data, 
   #         col = plot_parameters$col,
   #         names = plot_parameters$names,
@@ -168,11 +142,11 @@ pdf(file = plot.file, onefile = TRUE)
 par(mfrow = c(2, 2))
 for (i in 1:length(plot.parameters)) {
   bp <- boxplot(plot.parameters[[i]]$data,
-                col = plot.parameters[[i]]$col,
-                names = plot.parameters[[i]]$names,
-                ylab = plot.parameters[[i]]$ylab,
-                main = plot.parameters[[i]]$main,
-                las = 2)
+          col = plot.parameters[[i]]$col,
+          names = plot.parameters[[i]]$names,
+          ylab = plot.parameters[[i]]$ylab,
+          main = plot.parameters[[i]]$main,
+          las = 2)
   axis(3,at=1:length(bp$n),labels=bp$n)
 }
 par(mfrow = c(1, 1))
