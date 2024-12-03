@@ -1,4 +1,4 @@
-# Script: Driver mutation frequecies in SCAN-B TNBC
+# Script: Driver mutation frequecies in SCAN-B all
 # Author: Lennart Hohmann
 # Date: 08.05.2024
 #-------------------
@@ -27,15 +27,16 @@ dir.create(data.path)
 # input paths
 infile.1 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
 infile.2 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
-infile.3 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
+infile.3 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nAll.RData"
 infile.4 <- "./data/SCANB/5_TNBC_NatMed/driver.df.scanb.complete.csv"
 infile.5 <- "./data/SCANB/5_TNBC_NatMed/Updated_merged_annotations_n235_WGS_MethylationCohort.RData"
 infile.6 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 infile.7 <- "./data/Parameters/TNBC_color_palette.RData"
+infile.8 <- "./data/Parameters/color_palette.RData"
 
 # output paths
-plot.file <- paste0(output.path,cohort,"_mutfreqs_TNBC.pdf")
-txt.file <- paste0(output.path,cohort,"_mutfreqs_TNBC.txt")
+plot.file <- paste0(output.path,cohort,"_mutfreqs_All.pdf")
+txt.file <- paste0(output.path,cohort,"_mutfreqs_All.txt")
 #-------------------
 # storing objects
 plot.list <- list() # object to store plots
@@ -51,7 +52,12 @@ id.key <- loadRData(infile.6)
 id.key <- id.key[c("Tumour","Specimen_id")]
 
 # load palette
-color.palette <- loadRData(infile.7)
+color.palette.1 <- loadRData(infile.7)[c("TNBC_NonBasal",
+                                         "TNBC_Basal","ERpHER2n_Basal")]
+color.palette.2 <- loadRData(infile.8)[c("LumB", "LumA")]
+color.palette <- c(color.palette.1, color.palette.2)
+names(color.palette)[names(color.palette) == "LumA"] <- "ERpHER2n_LumA"
+names(color.palette)[names(color.palette) == "LumB"] <- "ERpHER2n_LumB"
 
 # wgs QC
 wgs.sum <- read_excel(infile.2, sheet = "Summary")
@@ -61,7 +67,8 @@ qc.samples.s <- id.key$Specimen_id[match(qc.samples,id.key$Tumour)]
 
 # driver data SCANB
 driv.scanb <- loadRData(infile.3)
-driv.scanb$Subtype <- "ERpHER2n_Basal"
+driv.scanb$Subtype <- paste0("ERpHER2n_",driv.scanb$PAM50)
+driv.scanb$PAM50 <- NULL
 
 # driver genes from tnbc groups
 tnbc.samples <- loadRData(infile.1)[c("TNBC_Basal","TNBC_NonBasal")]
@@ -122,8 +129,10 @@ driv.dat <- as.data.frame(rbind(driv.scanb,driv.tnbc))
 
 # total sample counts to calc. mut freqs, not all tnbc samples here, some have no driv muts?
 subtype.counts <- table(
-  driv.dat[!duplicated(driv.dat[,c("sample")]),]$Subtype)
-subtype.counts[] <- c(16,184,44)
+   driv.dat[!duplicated(driv.dat[,c("sample")]),]$Subtype)
+
+subtype.counts[] <- c(16,73,105,184,44)
+
 #######################################################################
 # plot and stats
 #######################################################################
@@ -152,15 +161,20 @@ for (gene in genes) {
     fisher.test(gene.dat[c("ERpHER2n_Basal","TNBC_NonBasal"),]) } else {"NA"}
   bas.res <- if(sum(is.na(gene.dat[c("ERpHER2n_Basal","TNBC_Basal"),]))==0) {
     fisher.test(gene.dat[c("ERpHER2n_Basal","TNBC_Basal"),]) } else {"NA"}
-  
+  luma.res <- if(sum(is.na(gene.dat[c("ERpHER2n_Basal","ERpHER2n_LumA"),]))==0) {
+    fisher.test(gene.dat[c("ERpHER2n_Basal","ERpHER2n_LumA"),]) } else {"NA"}
+  lumb.res <- if(sum(is.na(gene.dat[c("ERpHER2n_Basal","ERpHER2n_LumB"),]))==0) {
+    fisher.test(gene.dat[c("ERpHER2n_Basal","ERpHER2n_LumB"),]) } else {"NA"}
   txt.out <- append(txt.out, c(capture.output(nonbas.res), "\n###########################################\n"))
   txt.out <- append(txt.out, c(capture.output(bas.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(luma.res), "\n###########################################\n"))
+  txt.out <- append(txt.out, c(capture.output(lumb.res), "\n###########################################\n"))
   
   # plot
   plot.par <- list(
-    height = gene.mut.freqs[c("TNBC_NonBasal","TNBC_Basal","ERpHER2n_Basal")], 
-    names=names(color.palette), 
-    col = color.palette,
+    height = gene.mut.freqs[c("ERpHER2n_LumA","ERpHER2n_LumB","ERpHER2n_Basal","TNBC_Basal","TNBC_NonBasal")], 
+    names=c("ERpHER2n_LumA","ERpHER2n_LumB","ERpHER2n_Basal","TNBC_Basal","TNBC_NonBasal"), 
+    col = color.palette[c("ERpHER2n_LumA","ERpHER2n_LumB","ERpHER2n_Basal","TNBC_Basal","TNBC_NonBasal")],
     ylim=c(0,100),
     main=gene,
     ylab="Mutation frequency (%)")
