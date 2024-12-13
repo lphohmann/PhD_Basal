@@ -84,7 +84,7 @@ erp.basal <- erperc.dat[erperc.dat$PAM50=="Basal" &
 
 # save plots
 pdf(file = plot.file, onefile = TRUE)
-par(las=2)
+par(mfrow = c(2, 2),las=2)
 vioplot(list(LumA=luma.dat,
              LumB=lumb.dat,
              Basal=basal.dat,

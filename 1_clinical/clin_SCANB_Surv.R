@@ -52,15 +52,11 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-if (plot.HER2E == "yes") {
-  sampleIDs <- loadRData(infile.1)
-  color.palette <- loadRData(infile.2)
-} else { 
-  # load sampleIDs
-  sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
-  # load palette
-  color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
-  }
+# load sampleIDs
+sampleIDs <- loadRData(infile.1)[c("ERpHER2n_Basal", "ERpHER2n_LumA", "ERpHER2n_LumB")]
+# load palette
+color.palette <- loadRData(infile.2)[c("LumA","LumB","Basal")]
+
 
 names(color.palette) <- paste0("PAM50=", names(color.palette))
 
@@ -301,11 +297,11 @@ plot <- ggsurvplot(EC.fit,
                    pval = TRUE, conf.int = FALSE,
                    xlab = paste0(OM," (years)"), 
                    break.x.by = 1,
-                   break.y.by = 0.1,
+                   break.y.by = 0.05,
                    ylab = paste0(OM," probability"),
-                   ylim = c(0,1),
+                   ylim = c(0.5,1),
                    title = plot.title,
-                   legend = c(0.9,0.3),
+                   legend = c(0.3,0.3),
                    legend.title = "Subtypes",
                    palette = color.palette)[["plot"]]
 
@@ -365,11 +361,11 @@ plot <- ggsurvplot(E.fit,
                    pval = TRUE, conf.int = FALSE,
                    xlab = paste0(OM," (years)"), 
                    break.x.by = 1,
-                   break.y.by = 0.1,
+                   break.y.by = 0.05,
                    ylab = paste0(OM," probability"),
-                   ylim = c(0,1),
+                   ylim = c(0.5,1),
                    title = plot.title,
-                   legend = c(0.9,0.96),
+                   legend = c(0.3,0.2),
                    legend.title = "Subtypes",
                    palette = color.palette)[["plot"]]
 
@@ -443,9 +439,9 @@ plot <- ggsurvplot(EC.fit,
                    pval = TRUE, conf.int = FALSE,
                    xlab = paste0(OM," (years)"), 
                    break.x.by = 1,
-                   break.y.by = 0.1,
+                   break.y.by = 0.05,
                    ylab = paste0(OM," probability"),
-                   ylim = c(0,1),
+                   ylim = c(0.7,1),
                    title = plot.title,
                    legend = c(0.9,0.3),
                    legend.title = "Subtypes",
@@ -514,9 +510,9 @@ plot <- ggsurvplot(E.fit,
                    pval = TRUE, conf.int = FALSE,
                    xlab = paste0(OM," (years)"), 
                    break.x.by = 1,
-                   break.y.by = 0.1,
+                   break.y.by = 0.05,
                    ylab = paste0(OM," probability"),
-                   ylim = c(0,1),
+                   ylim = c(0.7,1),
                    title = plot.title,
                    legend = c(0.9,0.3),
                    legend.title = "Subtypes",
