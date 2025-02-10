@@ -52,9 +52,11 @@ color.palette <- c(LumA="#2176d5", LumB="#34c6eb", Basal="#ba0606", TNBCBasal_un
 # add 3 colors
 #color.palette
 
-# annotation 
+# annotation
 anno <- loadRData(infile.2)
 anno <- anno[anno$Follow.up.cohort == TRUE,]
+anno <- anno[anno$HER2 == "Negative",] # added
+
 #anno <- anno[anno$Sample %in% sampleIDs, ]
 
 # load data
@@ -94,12 +96,11 @@ vioplot(list(LumA=luma.dat,
         col = color.palette,
         names = names(color.palette),
         ylab = "INCA2_op_pad_erproc",
-        main = "ER+ cell count (%)")
+        main = "ER+ cell count (%) in HER2n cases")
 #points(jitter(rep(1, length(luma.dat)), amount = 0.2), luma.dat, col = "red")
 #points(jitter(rep(2, length(lumb.dat)), amount = 0.2), lumb.dat, col = "red")
-points(jitter(rep(3, length(basal.dat)), amount = 0.2), basal.dat, col = rgb(0, 0, 0, alpha = 0.7))
-points(jitter(rep(4, length(tnbc.basal.1$INCA2_op_pad_erproc)), amount = 0.2), tnbc.basal.1$INCA2_op_pad_erproc, col = rgb(0, 0, 0, alpha = 0.7))
-
+points(jitter(rep(3, length(basal.dat)), amount = 0.3), basal.dat, col = rgb(0, 0, 0, alpha = 0.7),cex=0.5)
+points(jitter(rep(4, length(tnbc.basal.1$INCA2_op_pad_erproc)), amount = 0.3), tnbc.basal.1$INCA2_op_pad_erproc, col = rgb(0, 0, 0, alpha = 0.7),cex=0.5)
 axis(3,at=1:6,labels=c(sum(!is.na(luma.dat)),
                        sum(!is.na(lumb.dat)),
                        sum(!is.na(basal.dat)),

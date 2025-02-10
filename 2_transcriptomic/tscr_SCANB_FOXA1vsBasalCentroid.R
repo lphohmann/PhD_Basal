@@ -100,6 +100,96 @@ bp <- plot(x=comb.dat$FOXA1,
           xlab="FOXA1 mRNA expression",
           ylab="Basal-like centroid correlation",
           main="FOXA1 expr. vs Basal centroid")
-dev.off()
 
-# also plot esr1
+
+#######################################################################
+#######################################################################
+if (!requireNamespace("VennDiagram", quietly = TRUE)) install.packages("VennDiagram")
+library(VennDiagram)
+
+foxa1.meth <- c("S004527", "S001534", "S000006", 
+                "S003591", "S000299", "S005062")
+foxa1.unmeth <- c("S000037","S000327","S001023",
+                  "S001318","S003109","S003433",
+                  "S004629","S000939","S002552","S004454") 
+foxc1.meth <- c("S003109","S002552","S000037",
+                "S001023","S000939","S000327","S003433")
+foxc1.unmeth <- c("S004454","S003591","S005062","S000006",
+                  "S000299","S001318","S004629","S001534")
+
+intersect(foxa1.meth,foxc1.meth) #0
+intersect(foxa1.meth,foxc1.unmeth) #5
+intersect(foxa1.unmeth,foxc1.unmeth) #3
+intersect(foxa1.unmeth,foxc1.meth) #7 # all meth foxc1 are foxa1 unmeth
+
+# Create the Venn diagrams and display them
+par(mfrow = c(2, 2)) # Arrange the plots in a 2x2 grid
+
+# FoxA1 Meth vs. FoxC1 Meth
+venn1 <- venn.diagram(
+  x = list(FoxA1_Meth = foxa1.meth, FoxC1_Meth = foxc1.meth),
+  category.names = c("FoxA1 Meth", "FoxC1 Meth"),
+  filename = NULL,
+  main = "FoxA1 Meth vs FoxC1 Meth"
+)
+grid.newpage()
+grid.draw(venn1)
+
+# FoxA1 Meth vs. FoxC1 Unmeth
+venn2 <- venn.diagram(
+  x = list(FoxA1_Meth = foxa1.meth, FoxC1_Unmeth = foxc1.unmeth),
+  category.names = c("FoxA1 Meth", "FoxC1 Unmeth"),
+  filename = NULL,
+  main = "FoxA1 Meth vs FoxC1 Unmeth"
+)
+grid.newpage()
+grid.draw(venn2)
+
+# FoxA1 Unmeth vs. FoxC1 Unmeth
+venn3 <- venn.diagram(
+  x = list(FoxA1_Unmeth = foxa1.unmeth, FoxC1_Unmeth = foxc1.unmeth),
+  category.names = c("FoxA1 Unmeth", "FoxC1 Unmeth"),
+  filename = NULL,
+  main = "FoxA1 Unmeth vs FoxC1 Unmeth"
+)
+grid.newpage()
+grid.draw(venn3)
+
+# FoxA1 Unmeth vs. FoxC1 Meth
+venn4 <- venn.diagram(
+  x = list(FoxA1_Unmeth = foxa1.unmeth, FoxC1_Meth = foxc1.meth),
+  category.names = c("FoxA1 Unmeth", "FoxC1 Meth"),
+  filename = NULL,
+  main = "FoxA1 Unmeth vs FoxC1 Meth"
+)
+grid.newpage()
+grid.draw(venn4)
+
+#######################################################################
+# Immune response vs methylation cluster for FOXA1?
+
+# get IR score for foxa1 clusters
+mg.scores <- loadRData("./data/SCANB/2_transcriptomic/processed/Metagene_scores_All.RData")
+ir.scores <- mg.scores["IR",] 
+foxa1.meth.ir <- as.numeric(ir.scores[foxa1.meth])
+foxa1.unmeth.ir <- as.numeric(ir.scores[foxa1.unmeth])
+
+# Create a list of the two groups
+data_list <- list(
+  "FoxA1 Meth" = foxa1.meth.ir,
+  "FoxA1 Unmeth" = foxa1.unmeth.ir
+)
+
+# Create the boxplot
+bp <- boxplot(
+  data_list,
+  main = "Comparison of IR Scores for FoxA1 Groups",
+  xlab = "Group",
+  ylab = "IR Score",
+  col = c("lightblue", "lightgreen"),
+  border = "black"
+)
+axis(3,at=1:length(bp$n),labels=bp$n)
+
+
+dev.off()

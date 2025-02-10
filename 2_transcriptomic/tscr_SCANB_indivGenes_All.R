@@ -64,7 +64,7 @@ gex.df <- gex.df[, unname(unlist(sampleIDs))]
 # analyses
 #######################################################################
 
-gene.vec <- c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1","FOXC1")
+gene.vec <- c("ESR1","AR","PGR","STAT3","STAT6","ABAT","AGR2","CA12","DNALI1","FOXA1","GATA3","SLC44A4","TBC1D9","XBP1","FOXC1","CD274","GABRP","MIA","SFRP1","TACSTD2","KIT","ELF5","SOX9","SOX10","KRT14","KRT5","KRT8")
 
 for (gene in gene.vec) {
   print(gene)
