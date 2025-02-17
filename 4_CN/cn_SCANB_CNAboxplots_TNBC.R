@@ -97,6 +97,18 @@ length(genes.bG$gene)
 length(genes.bL$gene)
 length(genes.nbG$gene)
 length(genes.nbL$gene)
+
+
+###############################################################################
+# only plot autosomes
+###############################################################################
+#str(chr.lengths)
+gl.freqs <- gl.freqs[gl.freqs$chr != 23,]
+genes.bG <- genes.bG[genes.bG$chr != 23,]
+genes.bL <- genes.bL[genes.bL$chr != 23,]
+genes.nbG <- genes.nbG[genes.nbG$chr != 23,]
+genes.nbL <- genes.nbL[genes.nbL$chr != 23,]
+
 ###############################################################################
 # plot: all profiles with points specific to Basal
 ###############################################################################

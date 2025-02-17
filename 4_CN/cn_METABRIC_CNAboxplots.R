@@ -73,6 +73,16 @@ genes.BL <- gl.freqs[gl.freqs$gene %in%
                        gene.test.df[gene.test.df$LumB.Loss.padj <= 0.05, ]$gene, ]
 
 ###############################################################################
+# only plot autosomes
+###############################################################################
+#str(chr.lengths)
+gl.freqs <- gl.freqs[gl.freqs$chr != 23,]
+genes.AG <- genes.AG[genes.AG$chr != 23,]
+genes.AL <- genes.AL[genes.AL$chr != 23,]
+genes.BG <- genes.BG[genes.BG$chr != 23,]
+genes.BL <- genes.BL[genes.BL$chr != 23,]
+
+###############################################################################
 # plot: all profiles with points specific to Basal
 ###############################################################################
 
