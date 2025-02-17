@@ -59,6 +59,10 @@ gl.freqs <- loadRData(infile.6)
 
 # prep dat
 gene.test.df <- loadRData(infile.7)
+
+#length(gene.test.df$gene)
+#length(genes.AG$gene)+length(genes.AL$gene)
+
 # subset signif genes
 genes.AG <- gl.freqs[gl.freqs$gene %in% 
                        gene.test.df[gene.test.df$LumA.Gain.padj <= 0.05, ]$gene, ]
@@ -115,8 +119,14 @@ txt.out <- append(txt.out, c("LumA Gain: n=",
                              paste0(nrow(genes.all.gain), " (",nrow(genes.all.gain)/nrow(gl.freqs)*100,"%)"),"\n",
                              "Both intersected Loss: n=",
                              paste0(nrow(genes.all.loss), " (",nrow(genes.all.loss)/nrow(gl.freqs)*100,"%)"),"\n",
+                             "Abs. freq diff to Basal, median LumA=",
+                             median(luma.dat),"\n",
+                             "Abs. freq diff to Basal, median LumB=",
+                             median(lumb.dat),"\n",
                              "\n###########################################\n"))
 
+#median(luma.dat)
+#median(lumb.dat)
 
 plot.par <- list(
   data = list(LumA=luma.dat,LumB=lumb.dat), 

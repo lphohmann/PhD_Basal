@@ -97,6 +97,11 @@ fpkm.degs.luma <- rownames(fpkm.degs.luma.df)[order(fpkm.degs.luma.df$Basal.LumA
 fpkm.degs.lumb.df <- res.fpkm[res.fpkm$Basal.LumB.padj <= 0.05 & abs(res.fpkm$Basal.LumB.logFC) > FC_cutoff,]
 fpkm.degs.lumb <- rownames(fpkm.degs.lumb.df)[order(fpkm.degs.lumb.df$Basal.LumB.logFC,decreasing=TRUE)]
 
+
+#core <- intersect(fpkm.degs.luma,fpkm.degs.lumb)
+#"ELF5" %in% core #
+
+
 # fpkm.degs.luma <- rownames(
 #   res.fpkm[res.fpkm$Basal.LumA.padj <= 0.05 & abs(res.fpkm$Basal.LumA.logFC) > FC_cutoff,])
 # fpkm.degs.lumb <- rownames(

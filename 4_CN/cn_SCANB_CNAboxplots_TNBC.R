@@ -93,6 +93,10 @@ genes.nbG <- gl.freqs[gl.freqs$gene %in%
 genes.nbL <- gl.freqs[gl.freqs$gene %in% 
                        gene.test.df[gene.test.df$TNBC.NonBasal.Loss.padj <= 0.05, ]$gene, ]
 
+length(genes.bG$gene)
+length(genes.bL$gene)
+length(genes.nbG$gene)
+length(genes.nbL$gene)
 ###############################################################################
 # plot: all profiles with points specific to Basal
 ###############################################################################

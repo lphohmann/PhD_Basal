@@ -143,10 +143,21 @@ genes.TNB.gain$y <- with(genes.TNB.gain,ifelse(freqgain.tnbc.NonBasal > freqgain
 genes.TNB.loss$y <- with(genes.TNB.loss,ifelse(freqloss.tnbc.NonBasal < freqloss.Basal,
                                                freqloss.tnbc.NonBasal, freqloss.Basal))
 
+gl.freqs <- gl.freqs.all
+###############################################################################
+# only plot autosomes
+###############################################################################
+#str(chr.lengths)
+gl.freqs <- gl.freqs[gl.freqs$chr != 23,]
+genes.TB.gain <- genes.TB.gain[genes.TB.gain$chr != 23,]
+genes.TB.loss <- genes.TB.loss[genes.TB.loss$chr != 23,]
+genes.TNB.gain <- genes.TNB.gain[genes.TNB.gain$chr != 23,]
+genes.TNB.loss <- genes.TNB.loss[genes.TNB.loss$chr != 23,]
+chr.lengths <- chr.lengths[chr.lengths$Chr != 23,]
+
 ###############################################################################
 # plot: all profiles with points 
 ###############################################################################
-gl.freqs <- gl.freqs.all
 
 pdf(file = plot.file, height = 21.0, width = 72.0)
 
@@ -185,7 +196,7 @@ plot <- ggplot() +
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
                      breaks=chr.lengths$genome, 
-                     labels=as.character(1:23),
+                     labels=as.character(1:22), #as.character(1:23),
                      limits = c(0,max(chr.lengths$genome)+50000000), #+50000000
                      expand = c(0, 0)) +
   scale_y_continuous(name="Alteration frequency (%)",

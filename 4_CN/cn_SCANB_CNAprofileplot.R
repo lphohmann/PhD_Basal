@@ -14,7 +14,8 @@ cohort <- "SCANB"
 source("./scripts/src/general_functions.R")
 #source("./scripts/3_WGS/src/wgs_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(IRanges,
+pacman::p_load(ggplot2,
+               IRanges,
                GenomicFeatures,
                TxDb.Hsapiens.UCSC.hg38.knownGene,
                TxDb.Hsapiens.UCSC.hg19.knownGene,
@@ -124,6 +125,16 @@ genes.BL$y <- with(genes.BL,ifelse(freqloss.LumB < freqloss.Basal,
                                    freqloss.LumB, freqloss.Basal))
 
 ###############################################################################
+# only plot autosomes
+###############################################################################
+#str(chr.lengths)
+gl.freqs <- gl.freqs[gl.freqs$chr != 23,]
+genes.AG <- genes.AG[genes.AG$chr != 23,]
+genes.AL <- genes.AL[genes.AL$chr != 23,]
+genes.BG <- genes.BG[genes.BG$chr != 23,]
+genes.BL <- genes.BL[genes.BL$chr != 23,]
+chr.lengths <- chr.lengths[chr.lengths$Chr != 23,]
+###############################################################################
 # plot: all profiles with points 
 ###############################################################################
 
@@ -164,7 +175,7 @@ plot <- ggplot() +
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
                      breaks=chr.lengths$genome, 
-                     labels=as.character(1:23),
+                     labels=as.character(1:22), #as.character(1:23)
                      limits = c(0,max(chr.lengths$genome)+50000000), #+50000000
                      expand = c(0, 0)) +
   scale_y_continuous(name="Alteration frequency (%)",
@@ -237,7 +248,7 @@ plot <- ggplot() +
              linetype="dashed",size=1) + 
   scale_x_continuous(name="Genome position (chromosome)",
                      breaks=chr.lengths$genome, 
-                     labels=as.character(1:23),
+                     labels=as.character(1:22), #as.character(1:23),
                      limits = c(0,max(chr.lengths$genome)+50000000), #+50000000
                      expand = c(0, 0)) +
   scale_y_continuous(name="Alteration frequency (%)",
