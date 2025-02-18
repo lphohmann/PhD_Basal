@@ -40,7 +40,7 @@ infile.2 <- "./data/Parameters/color_palette.RData"
 infile.3 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 # output paths
 plot.file <- paste0(output.path,cohort,"_SA.pdf")
-plot.file.2 <- paste0(output.path,cohort,"_SA_combined.pdf")
+#plot.file.2 <- paste0(output.path,cohort,"_SA_combined.pdf")
 txt.file <- paste0(output.path,cohort,"_SA.txt")
 #outfile.1 <- paste0(data.path,"SA.RData")
 #-------------------
@@ -278,6 +278,11 @@ txt.out <- append(txt.out,
 median.EC <- median(EC.dat[which(EC.dat[[OMbin]]==0),][[OM]])
 txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n###########################################\n"))
 
+# add log rank pval
+txt.out <- append(txt.out,
+                  c("log-rank test", "\n", 
+                    capture.output(surv_pvalue(EC.fit, data = EC.dat)),"\n###########################################\n"))
+
 ##########################
 
 # uv cox
@@ -341,6 +346,10 @@ txt.out <- append(txt.out,
 # add the median OM of censored patients
 median.E <- median(E.dat[which(E.dat[[OMbin]]==0),][[OM]])
 txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n###########################################\n"))
+# add log rank pval
+txt.out <- append(txt.out,
+                  c("log-rank test", "\n", 
+                    capture.output(surv_pvalue(E.fit, data = E.dat)),"\n###########################################\n"))
 
 ##########################
 
@@ -419,6 +428,10 @@ txt.out <- append(txt.out,
 # add the median OM of censored patients
 median.EC <- median(EC.dat[which(EC.dat[[OMbin]]==0),][[OM]])
 txt.out <- append(txt.out,c(paste0("Median ",OM, " for CT+ET censored patients = ",median.EC),"\n###########################################\n"))
+# add log rank pval
+txt.out <- append(txt.out,
+                  c("log-rank test", "\n", 
+                    capture.output(surv_pvalue(EC.fit, data = EC.dat)),"\n###########################################\n"))
 
 ##########################
 
@@ -490,6 +503,10 @@ txt.out <- append(txt.out,
 # add the median OM of censored patients
 median.E <- median(E.dat[which(E.dat[[OMbin]]==0),][[OM]])
 txt.out <- append(txt.out,c(paste0("Median ",OM, " for ET censored patients = ",median.E),"\n###########################################\n"))
+# add log rank pval
+txt.out <- append(txt.out,
+                  c("log-rank test", "\n", 
+                    capture.output(surv_pvalue(E.fit, data = E.dat)),"\n###########################################\n"))
 
 ##########################
 
@@ -545,39 +562,3 @@ dev.off()
 
 # save text
 writeLines(txt.out, txt.file)
-
-
-
-# save n plots per page
-# Create a list of ggplotGrob objects
-grob_list <- lapply(plot.list, function(x) {
-  p <- ggplotGrob(x)
-  return(p)
-})
-# Set the maximum number of plots per page and orientation
-plots_per_page <- 6
-ncol <- 2
-nrow <- 3
-# Calculate the number of pages needed
-num_pages <- ceiling(length(grob_list) / plots_per_page)
-
-# Create a multi-page PDF
-pdf(plot.file.2)#, width = 8.27, height = 11.69)
-
-# Loop through pages and save each page
-for (page in 1:num_pages) {
-  start_index <- (page - 1) * plots_per_page + 1
-  end_index <- min(page * plots_per_page, length(grob_list))
-  
-  grob_list_page <- grob_list[start_index:end_index]
-  
-  # Arrange the ggplotGrob objects in a grid for each page
-  grid_arranged_page <- grid.arrange(grobs = grob_list_page, 
-                                     ncol = ncol, nrow = nrow)
-  
-  # Print the arranged grob to the current PDF page
-  print(grid_arranged_page)
-}
-
-# Close the PDF device
-dev.off()

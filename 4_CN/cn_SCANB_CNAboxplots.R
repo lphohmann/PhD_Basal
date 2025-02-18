@@ -156,6 +156,8 @@ cna.df <- loadRData(infile.8)[[1]]
 row.names(cna.df) <- cna.df$gene
 sample.ids <- loadRData(infile.8)[[2]]
 
+cna.df <- cna.df[cna.df$chr != 23,]
+
 # sample # %altered
 basal.dat <- as.vector(apply(cna.df[sample.ids$Basal],2,function(x) {
   (sum(x!=0)/length(x))*100}))
