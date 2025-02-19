@@ -14,7 +14,8 @@ cohort <- "SCANB"
 source("./scripts/src/general_functions.R")
 #source("./scripts/3_WGS/src/wgs_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(IRanges,
+pacman::p_load(ggplot2,
+               IRanges,
                GenomicFeatures,
                TxDb.Hsapiens.UCSC.hg38.knownGene,
                TxDb.Hsapiens.UCSC.hg19.knownGene,
@@ -188,8 +189,8 @@ plot <- ggplot() +
     y = gl.freqs$freqloss.Basal,  
     color = "ERpHER2n_Basal"),size=4) + 
   scale_colour_manual(name="Subtype", values = color.palette) + 
-  geom_point(aes(x = genes.TB.gain$Genome_pos, y = genes.TB.gain$y), size=12, colour="red") +
-  geom_point(aes(x = genes.TB.loss$Genome_pos, y = genes.TB.loss$y), size=12, colour="red") +
+  geom_point(aes(x = genes.TB.gain$Genome_pos, y = genes.TB.gain$y), size=20, colour="black") +
+  geom_point(aes(x = genes.TB.loss$Genome_pos, y = genes.TB.loss$y), size=20, colour="black") +
   geom_point(aes(x = genes.TNB.gain$Genome_pos, y = genes.TNB.gain$y), size=12, colour="blue") +
   geom_point(aes(x = genes.TNB.loss$Genome_pos, y = genes.TNB.loss$y), size=12, colour="blue") +
   geom_vline(xintercept = chr.lengths$genome,
