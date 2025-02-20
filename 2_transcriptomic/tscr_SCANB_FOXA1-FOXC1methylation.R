@@ -29,6 +29,7 @@ infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_
 infile.3 <- "./data/SCANB/1_clinical/raw/pam50ann_correlations_summarizedByMean_REL4.RData"
 infile.4 <- "./data/SCANB/2_transcriptomic/processed/ERp_LogScaled_gex.RData"
 infile.5 <- "./data/SCANB/2_transcriptomic/processed/Metagene_scores_All.RData"
+infile.6 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
 # output paths
 plot.file <- paste0(output.path,cohort,"_FOXA1-FOXC1methylation.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
@@ -79,6 +80,12 @@ mg.scores <- mg.scores[sampleIDs]
 #comb.dat <- as.data.frame(t(gex.data))
 #comb.dat$meanBasal <- corr.data$meanBasal[match(row.names(comb.dat),corr.data$Sample)]
 
+# hrd dat
+hrd.dat <- read.table(infile.6, sep = ",", header = TRUE)
+hrd.dat$Lund.tumour.id <- gsub("\\..*", "", hrd.dat$Lund.tumour.id)
+hrd.dat <- hrd.dat[hrd.dat$Lund.tumour.id %in% sampleIDs,]
+hrd.dat$HRDetect <- ifelse(hrd.dat$Probability >= 0.7,"HRD-high","HRD-low")
+
 #######################################################################
 # - Cluster overlap
 #######################################################################
@@ -123,6 +130,39 @@ for (fox in c("FOXA1","FOXC1")) {
   # 2. Clusters vs HRD
   #######################################################################
   
+  bp <- boxplot(list(hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$A), ]$Probability, 
+                     hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$B), ]$Probability),
+                ylab="HRD probability",
+                xlab="shore/CGI CpGs methylation cluster",
+                names = c("A","B"),
+                col=c("#fc5603","#edb374"),
+                main=paste0(fox,": HRD prob vs MethClust"))
+  axis(3,at=1:length(bp$n),labels=bp$n)
+  
+  
+  # Count occurrences of "high" and "low" for each group
+  A_counts <- table(hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$A), ]$HRDetect)
+  B_counts <- table(hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$B), ]$HRDetect)
+  
+  # Convert counts to percentages
+  A_percent <- A_counts / sum(A_counts) * 100
+  B_percent <- B_counts / sum(B_counts) * 100
+  
+  # Combine percentages into a matrix
+  percent_matrix <- rbind(A_percent, B_percent)
+  
+  # Create stacked barplot (percentage format)
+  bp <- barplot(t(percent_matrix), 
+                beside=TRUE, # Stacked bars
+                col=c("#fccfe6", "#fa43a1"), 
+                names.arg=c("A", "B"), 
+                ylab="Percentage", 
+                ylim= c(0,100),
+                xlab="shore/CGI CpGs methylation cluster", 
+                main=paste0(fox, ": HRD prob vs MethClust"),
+                legend.text = c("HRD-Low", "HRD-High"))
+  
+  axis(3,at=1:4,labels=c(A_counts,B_counts))
   
   #######################################################################
   # 3. Clusters vs mRNA expression (FOXA1,FOXC1,ESR1)
