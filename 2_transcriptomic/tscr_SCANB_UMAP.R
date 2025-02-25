@@ -17,9 +17,9 @@ pacman::p_load(umap,
                #DESeq2,
                edgeR,
                limma)
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("DESeq2")
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+#BiocManager::install("DESeq2")
 #-------------------
 # set/create output directories
 # for plots
