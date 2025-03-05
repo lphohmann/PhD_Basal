@@ -33,6 +33,7 @@ infile.5 <- "./data/Parameters/color_palette.RData"
 infile.6 <- "./data/SCANB/3_WGS/raw/2024_02_11_snv_sig_refsig_errperc20_correct_exposures_combined_502.csv"
 infile.9 <- "./data/SCANB/3_WGS/raw/2024_02_14_SCANB_ERpos_rearr_sig_502.csv"
 # output paths
+outfile.1 <- "./data/SCANB/3_WGS/processed/processed_signatures.RData"
 plot.file <- paste0(output.path,cohort,"_signatures.pdf")
 txt.file <- paste0(output.path,cohort,"_signatures.txt")
 #-------------------
@@ -102,6 +103,8 @@ names(sign.scanb)[1] <- "Sample"
 
 # select basal samples
 sign.scanb <- sign.scanb[sign.scanb$Sample %in% qc.samples.s,]
+
+save(sign.scanb, file=outfile.1)
 
 #######################################################################
 # load and process BASIS data

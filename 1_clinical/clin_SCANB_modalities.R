@@ -1,41 +1,39 @@
-# Script: overview avaialble modalities SCAN-B
+# Script: overview data modalities SCAN-B
 # Author: Lennart Hohmann
-# Date: 20.01.2025
+# Date: 02.03.2025
 #-------------------
 # empty environment 
 rm(list=ls())
 # set working directory to the project directory
-setwd("~/PhD_Workspace/Project_Basal/")
-# cohort
-cohort <- "SCANB"
+setwd("~/PhD_Workspace/Project_PredictRecurrence/")
 #-------------------
 # packages
-source("./scripts/src/general_functions.R")
-#source("./scripts/3_WGS/src/wgs_functions.R")
-if (!require("pacman")) install.packages("pacman")
-pacman::p_load(VennDiagram)
+#source("./scripts/src/")
+#if (!require("pacman")) install.packages("pacman")
+#pacman::p_load()
 #-------------------
 # set/create output directories
-# for plots
-output.path <- "./output/1_clinical/"
-dir.create(output.path)
-# for data
-data.path <- "./data/SCANB/1_clinical/processed/"
-dir.create(data.path)
+#output.path <- "./output/"
+#dir.create(output.path)
 #-------------------
 # input paths
-infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
+infile.1 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 # output paths
-plot.file <- paste0(output.path,cohort,"_modalitiesVenn.pdf")
-#txt.file <- paste0(output.path,cohort,"_i.txt")
+outfile.1 <- paste0(output.path,"_modalitiesVenn.pdf") #.txt
 #-------------------
 # storing objects 
-plot.list <- list() # object to store plots
-plot.parameters <- list() # object to store parameters to plot base R plots again later
+#plot.list <- list() # object to store plots
 #txt.out <- c() # object to store text output, if the output is not in string format use capture.output()
+#######################################################################
+
+# function: loads RData data file and allows to assign it directly to variable
+loadRData <- function(file.path){
+  load(file.path)
+  get(ls()[ls() != "file.path"])
+} 
 
 #######################################################################
-# load data
+# clinical data
 #######################################################################
 
 # annotation 
@@ -48,22 +46,14 @@ anno <- anno[c("Sample","ER","PR","HER2","LN.spec",
      "Age",  "OSbin","OS","RFIbin","RFI",
      "DRFIbin","DRFI","NCN.PAM50")]               
 
-table(is.na(anno$Size.mm))
+#######################################################################
+# RNA-seq data
+#######################################################################
 
-pdf(file = plot.file, onefile = TRUE) 
-par(mfrow = c(2, 2))
+#######################################################################
+# DNA methylation data (n=499)
+#######################################################################
 
-# Create the Venn diagrams and display them
-par(mfrow = c(2, 2)) # Arrange the plots in a 2x2 grid
-
-# FoxA1 Meth vs. FoxC1 Meth
-venn1 <- venn.diagram(
-  x = list(FoxA1_Meth = foxa1.meth, FoxC1_Meth = foxc1.meth),
-  category.names = c("FoxA1 Meth", "FoxC1 Meth"),
-  filename = NULL,
-  main = "FoxA1 Meth vs FoxC1 Meth"
-)
-grid.newpage()
-grid.draw(venn1)
-
-dev.off()
+#######################################################################
+# WGS variant calling data (n=?) 499 -> is published?
+#######################################################################

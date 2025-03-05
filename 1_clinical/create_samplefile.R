@@ -92,6 +92,9 @@ save(TNBC_sampleIDs, file = outfile.scanb.TNBC_sampleIDs)
 #"/5_TNBC_NatMed/Updated_merged_annotations_n235_WGS_MethylationCohort.RData"
 # save the pd ids
 all.tnbc <- loadRData(infile.2)
+#x <- all.tnbc[all.tnbc$flag_FUv8!="0",]
+#x$External_ID_sample
+#identical(all.tnbc$External_ID_sample,x$External_ID_sample)
 all.tnbc <- all.tnbc[all.tnbc$External_ID_sample %in% tnbc.anno$Sample,]
 all.tnbc.ids <- all.tnbc$PD_ID
 save(all.tnbc.ids, file = "./data/SCANB/0_GroupSamples/TNBC_PDids.RData")
