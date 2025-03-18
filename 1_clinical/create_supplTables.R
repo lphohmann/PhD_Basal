@@ -11,7 +11,7 @@ setwd("~/PhD_Workspace/Project_Basal/")
 source("./scripts/src/general_functions.R")
 source("./scripts/1_clinical/src/clin_functions.R")
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(openxlsx, writexl)
+pacman::p_load(openxlsx, writexl,readxl)
 #-------------------
 # set/create output directories
 output.path <- "./output/0_SupplementaryTables/"
@@ -34,6 +34,9 @@ infile.13 <- "./data/SCANB/2_transcriptomic/processed/DE_result_FPKM_TNBC.RData"
 infile.14 <- "./data/SCANB/2_transcriptomic/processed/DE_result_FPKM.RData"
 infile.15 <- "./data/SCANB/1_clinical/raw/cst.txt"
 infile.16 <- "./data/SCANB/1_clinical/raw/GSE278586_Annotations_Step1.txt"
+infile.17 <- "./data/SCANB/3_WGS/raw/Project2_Basal_like_Drivers_22Jan24_ForJohan.xlsx"
+infile.18 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
+infile.19 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
 # output paths
 outfile.1 <- paste0(output.path,"SCANB_SupplementaryTableS1.xlsx")
 outfile.2 <- paste0(output.path,"SCANB_SupplementaryTableS2.xlsx")
@@ -166,14 +169,52 @@ saveWorkbook(wb, outfile.1, overwrite = TRUE)
 
 hrd.dat <- hrd.dat[c("Lund.tumour.id","intercept","del.mh.prop","SNV3",
                   "SV3","SV5","hrd","SNV8","Probability","HRDetect")] 
+#View(mut.dat)
+id.key <- loadRData(infile.18)
+wgs.sum <- read_excel(infile.19, sheet = "Summary")
+wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
+wgs.sum <- wgs.sum[wgs.sum$`Final QC` %in% c("PASS","AMBER"),]
+wgs.sum$Sample <- id.key$Specimen_id[match(wgs.sum$Tumour,id.key$Tumour)]
+wgs.sum <- wgs.sum[c("Sample","Batch","Final QC","Tumour","Tumour duplicate rate",
+                     "Tumour mean depth","Normal","Normal duplicate rate",
+                     "Normal mean depth","Final_Ploidy","Final_Aberrant cell fraction",
+                     "Caveman counts (CLPM=0,ASMD>=140)_final",
+                     "Pindel counts (QUAL>=250,Repeats>10)_final",
+                     "BRASS Counts Assembly score >0_final")]
+#View(wgs.sum)
+mut.1 <- read_excel(infile.17,sheet = "PindelCoding")
+mut.2 <- read_excel(infile.17,sheet = "PindelDrivers")
+mut.3 <- read_excel(infile.17,sheet = "CavemanCoding")
+mut.4 <- read_excel(infile.17,sheet = "CavemanDrivers")
+mut.5 <- read_excel(infile.17,sheet = "BRASS_Coding")
+mut.6 <- read_excel(infile.17,sheet = "BRASS_drivers")
+mut.list <- lapply(list(mut.1,mut.2,mut.3,mut.4,mut.5,mut.6), function(df) {
+  names(df) <- toupper(names(df))
+  df <- df[df$SAMPLE %in% wgs.sum$Tumour,]
+  df$SAMPLE <- id.key$Specimen_id[match(df$SAMPLE,id.key$Tumour)]
+  return(df)
+})
+
 wb <- createWorkbook()
-add_sheet(wb, "WGS_signatures", signature.dat)
-add_sheet(wb, "HRDetect", hrd.dat)
-add_sheet(wb, "Driver_mutations", mut.dat)
-add_sheet(wb, "Total_mutation_counts", mb.dat)
+add_sheet(wb, "WGS_summary", wgs.sum) # check
+add_sheet(wb, "WGS_signatures", signature.dat) # check
+add_sheet(wb, "HRDetect", hrd.dat) # check
+mut.sheet.names <- c("PindelCoding","PindelDrivers","CavemanCoding","CavemanDrivers","BRASSCoding","BRASSDrivers")
+for(i in 1:length(mut.list)) {
+  add_sheet(wb, mut.sheet.names[i], mut.list[[i]])
+}
+#add_sheet(wb, "AllDriver_mutations", mut.dat)
+
+#add_sheet(wb, "Total_mutation_counts", mb.dat)
 
 # Save the workbook to an Excel file
 saveWorkbook(wb, outfile.3, overwrite = TRUE)
+
+# get complete somatic wgs data
+infile.8 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
+infile.9 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
+hrd.dat
+
 
 #######################################################################
 # Table 2: DE results, core set
