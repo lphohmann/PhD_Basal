@@ -49,6 +49,7 @@ plot.list <- list() # object to store plots
 tnbc.samples <- loadRData(infile.1)[c("TNBC_Basal","TNBC_NonBasal")]
 driv.tnbc <- read.table(infile.4,sep=",",header=TRUE)
 tnbc.anno <- loadRData(infile.5)
+#View(tnbc.anno)
 tnbc.anno$Subtype <- sapply(tnbc.anno$External_ID_sample, function(sampleID) {
   for (sublist_name in names(tnbc.samples)) {
     if (sampleID %in% tnbc.samples[[sublist_name]]) {
@@ -98,10 +99,22 @@ names(driv.tnbc) <- c("sample","gene","mutation","subtype")
 # plot waterfall
 #######################################################################
 
-myHierarchy<- data.table("mutation"=unique(driv.tnbc$mutation), 
-                         color=brewer.pal(length(unique(driv.tnbc$mutation)), "Set1"))
+#myHierarchy<- data.table("mutation"=unique(driv.tnbc$mutation), 
+#                         color=brewer.pal(length(unique(driv.tnbc$mutation)), "Set1"))
+
+myHierarchy <- data.table(
+  mutation = c("indel_frameshift", "point_nonsense", "point_missense", "indel_ess_splice",
+               "point_ess_splice", 
+               "indel_inframe", "CN_amplification", "rearr_deletion", "rearr_translocation", 
+               "rearr_inversion", "rearr_tandem-duplication", "point_silent"),
+  color = c("#E41A1C", "#FF7F00",  "#33A02C",  "#40E0D0", "#1F78B4",  "#ADD8E6",  "#6A3D9A",  
+            "#F781BF",  "#89a832",  "#A65628",  "#FFFF00",  "#A6A6A6"))
 
 plot.dat <- driv.tnbc[driv.tnbc$subtype=="TNBC_Basal",c("sample","gene","mutation")]
+
+# add samples to the list that have no dirvers alterations, but are still part of the group
+missing_samples <- setdiff(tnbc.samples[["TNBC_Basal"]], plot.dat$sample)
+plot.dat <- rbind(plot.dat, data.frame(sample = missing_samples, gene = NA, mutation = NA))
 
 plot <- GenVisR::Waterfall(plot.dat,
                            mutationHierarchy = myHierarchy,
@@ -109,14 +122,16 @@ plot <- GenVisR::Waterfall(plot.dat,
                            recurrence = 0,
                            geneMax = 10,
                            gridOverlay = FALSE,
-                           sampleNames = FALSE,
+                           sampleNames = TRUE,
                            drop = TRUE) 
-
+#drawPlot(plot)
 # append to list
 plot.list <- append(plot.list,list(plot))
 
 # 2
 plot.dat <- driv.tnbc[driv.tnbc$subtype=="TNBC_NonBasal",c("sample","gene","mutation")]
+missing_samples <- setdiff(tnbc.samples[["TNBC_NonBasal"]], plot.dat$sample)
+plot.dat <- rbind(plot.dat, data.frame(sample = missing_samples, gene = NA, mutation = NA))
 
 plot <- GenVisR::Waterfall(plot.dat,
                            mutationHierarchy = myHierarchy,

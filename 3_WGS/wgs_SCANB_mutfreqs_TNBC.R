@@ -121,9 +121,11 @@ driv.dat <- as.data.frame(rbind(driv.scanb,driv.tnbc))
 #View(driv.dat)
 
 # total sample counts to calc. mut freqs, not all tnbc samples here, some have no driv muts?
-subtype.counts <- table(
-  driv.dat[!duplicated(driv.dat[,c("sample")]),]$Subtype)
-subtype.counts[] <- c(16,184,44)
+#subtype.counts <- table(
+#  driv.dat[!duplicated(driv.dat[,c("sample")]),]$Subtype)
+#subtype.counts[] <- c(16,184,44)
+subtype.counts <- c("ERpHER2n_Basal"=16,"TNBC_Basal"=184,
+                      "TNBC_NonBasal"=44)
 #######################################################################
 # plot and stats
 #######################################################################
@@ -180,7 +182,7 @@ for (i in 1:length(plot.parameters)) {
                 ylim=plot.parameters[[i]]$ylim,
                 main=plot.parameters[[i]]$main,
                 ylab=plot.parameters[[i]]$ylab)
-  axis(3,at=bp,labels=subtype.counts[names(color.palette)]) # change to all samples?
+  axis(3,at=bp,labels=subtype.counts[plot.parameters[[i]]$names]) # change to all samples?
 }
 par(mfrow = c(1, 1))
 dev.off()

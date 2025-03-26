@@ -15,7 +15,9 @@ source("./scripts/src/general_functions.R")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(readxl,
                reshape2,
-               GenVisR)
+               GenVisR,
+               data.table,
+               RColorBrewer)
 #-------------------
 # set/create output directories
 # for plots
@@ -47,8 +49,16 @@ driv.df <- loadRData(infile.1)
 #######################################################################
 names(driv.df) <- c("sample", "gene", "mutation")
 
-myHierarchy<- data.table("mutation"=unique(driv.df$mutation), 
-                         color=brewer.pal(length(unique(driv.df$mutation)), "Set1"))
+#myHierarchy<- data.table("mutation"=unique(driv.df$mutation), 
+#                         color=brewer.pal(length(unique(driv.df$mutation)), "Set1"))
+myHierarchy <- data.table(
+  mutation = c("indel_frameshift", "point_nonsense", "point_missense", "indel_ess_splice",
+               "point_ess_splice", 
+               "indel_inframe", "CN_amplification", "rearr_deletion", "rearr_translocation", 
+               "rearr_inversion", "rearr_tandem-duplication", "point_silent"),
+  color = c("#E41A1C", "#FF7F00",  "#33A02C",  "#40E0D0", "#1F78B4",  "#ADD8E6",  "#6A3D9A",  
+            "#F781BF",  "#89a832",  "#A65628",  "#FFFF00",  "#A6A6A6"))
+
 
 plot <- GenVisR::Waterfall(driv.df,
                            mutationHierarchy = myHierarchy,
@@ -56,7 +66,7 @@ plot <- GenVisR::Waterfall(driv.df,
                            recurrence = 0,
                            geneMax = 10,
                            gridOverlay = FALSE,
-                           sampleNames = FALSE,
+                           sampleNames = TRUE,
                            drop = TRUE)
 #drawPlot(plot)
 

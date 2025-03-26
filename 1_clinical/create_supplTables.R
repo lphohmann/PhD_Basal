@@ -175,7 +175,7 @@ wgs.sum <- read_excel(infile.19, sheet = "Summary")
 wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
 wgs.sum <- wgs.sum[wgs.sum$`Final QC` %in% c("PASS","AMBER"),]
 wgs.sum$Sample <- id.key$Specimen_id[match(wgs.sum$Tumour,id.key$Tumour)]
-wgs.sum <- wgs.sum[c("Sample","Batch","Final QC","Tumour","Tumour duplicate rate",
+wgs.sum <- wgs.sum[c("Sample","Batch","Tumour","Tumour duplicate rate",
                      "Tumour mean depth","Normal","Normal duplicate rate",
                      "Normal mean depth","Final_Ploidy","Final_Aberrant cell fraction",
                      "Caveman counts (CLPM=0,ASMD>=140)_final",
