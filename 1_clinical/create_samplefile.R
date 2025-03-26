@@ -18,10 +18,8 @@ pacman::p_load(tidyverse, openxlsx)
 infile.1 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.2 <- "./data/SCANB/5_TNBC_NatMed/Updated_merged_annotations_n235_WGS_MethylationCohort.RData"
 infile.3 <- "./data/METABRIC/1_clinical/raw/Merged_annotations.RData"
-
-# for johan
 infile.4 <- "./data/SCANB/0_GroupSamples/ERpHER2nBasal_WGS_sampleIDs.RData"
-
+infile.5 <- "./data/METABRIC/2_transcriptomic/processed/All_LogScaled_gex.RData"
 # output paths
 outfile.color.palette <- "./data/Parameters/color_palette.RData"
 outfile.color.palette_TNBC <- "./data/Parameters/TNBC_color_palette.RData"
@@ -132,14 +130,12 @@ metabric.all <- metabric.all[!is.na(metabric.all$METABRIC_ID),]
 erp.dat <- metabric.all[which(metabric.all$HER2_amp == "no" & 
                                 metabric.all$ER_IHC_status =="pos"),]
 #table(is.na(erp.dat$ClinGroup))
-table(erp.dat$PAM50)
 ERpHER2n_sampleIDs.mb <- list(
   "ERpHER2n_Basal"= erp.dat[which(erp.dat$PAM50=="Basal"),]$METABRIC_ID,
   #"ERpHER2n_HER2E"= erp.dat[which(erp.dat$PAM50=="Her2"),]$METABRIC_ID,
   "ERpHER2n_LumA"= erp.dat[which(erp.dat$PAM50=="LumA"),]$METABRIC_ID,
   "ERpHER2n_LumB"= erp.dat[which(erp.dat$PAM50=="LumB"),]$METABRIC_ID)
 
-save(ERpHER2n_sampleIDs.mb, file = outfile.metabric.ERpHER2n_sampleIDs)
 
 ################################################################################
 # TNBC data
@@ -147,15 +143,30 @@ save(ERpHER2n_sampleIDs.mb, file = outfile.metabric.ERpHER2n_sampleIDs)
 tnbc.dat <- metabric.all[which(metabric.all$ClinGroup=="TNBC"),] # but NA for some samples
 
 # define groups
-table(tnbc.dat$PAM50)
 tnbc.dat$TNBC_Group <- ifelse(tnbc.dat$PAM50 == "Basal", "TNBC_Basal", "TNBC_NonBasal")
-table(tnbc.dat$TNBC_Group)
 
 TNBC_sampleIDs.metabric <- list(
   "ERpHER2n_Basal"= ERpHER2n_sampleIDs.mb[["ERpHER2n_Basal"]],
   "TNBC_Basal"= tnbc.dat[which(tnbc.dat$TNBC_Group=="TNBC_Basal"),]$METABRIC_ID,
   "TNBC_NonBasal"= tnbc.dat[which(tnbc.dat$TNBC_Group=="TNBC_NonBasal"),]$METABRIC_ID)
 
+# load gex to filter out samples wihtout molecular data
+gex.df <- loadRData(infile.5)
+gex.df <- gex.df[, colnames(gex.df) %in% unname(unlist(c(ERpHER2n_sampleIDs.mb,TNBC_sampleIDs.metabric)))]
+
+TNBC_sampleIDs.metabric <- lapply(TNBC_sampleIDs.metabric, function(sublist) {
+  sublist[sublist %in% names(gex.df)]
+})
+
+ERpHER2n_sampleIDs.mb <- lapply(ERpHER2n_sampleIDs.mb, function(sublist) {
+  sublist[sublist %in% names(gex.df)]
+})
+
+#lapply(TNBC_sampleIDs.metabric,length)
+#lapply(ERpHER2n_sampleIDs.mb,length)
+
+
 save(TNBC_sampleIDs.metabric, file = outfile.metabric.TNBC_sampleIDs)
 
+save(ERpHER2n_sampleIDs.mb, file = outfile.metabric.ERpHER2n_sampleIDs)
 

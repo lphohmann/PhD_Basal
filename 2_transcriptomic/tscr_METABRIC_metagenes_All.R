@@ -65,6 +65,10 @@ names(color.palette)[names(color.palette) == "LumB"] <- "ERpHER2n_LumB"
 gex.df <- loadRData(infile.3)
 gex.df <- gex.df[, colnames(gex.df) %in% unname(unlist(sampleIDs))]
 
+# how many sample sit it
+sapply(sampleIDs, function(sublist) sum(names(gex.df) %in% sublist))
+#unlist(lapply(sampleIDs,length))
+
 #######################################################################
 # calc. sample metagene scores
 #######################################################################
