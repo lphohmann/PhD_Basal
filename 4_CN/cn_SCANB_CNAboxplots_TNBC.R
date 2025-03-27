@@ -33,6 +33,7 @@ infile.7 <- "./data/SCANB/4_CN/processed/CNA_genetest_TNBC.RData"
 infile.8 <- "./data/SCANB/4_CN/processed/CNA_genelevel_all.RData"
 infile.9 <- "./data/SCANB/4_CN/processed/CNA_GLFreqs_TNBC.RData"
 infile.10 <- "./data/SCANB/4_CN/processed/CNA_genelevel_TNBC.RData"
+infile.11 <- "./data/Parameters/color_palette.RData"
 # output paths
 #outfile.1 <- ""
 plot.file <- paste0(output.path,cohort,"_CNAboxplots_TNBC.pdf")
@@ -47,7 +48,15 @@ txt.out <- c() # object to store text output, if the output is not in string for
 # load data
 #######################################################################
 
-color.palette <- loadRData(infile.5)#[c("LumA","LumB","Basal")]
+#color.palette <- loadRData(infile.5)#[c("LumA","LumB","Basal")]
+
+# load palette
+color.palette.1 <- loadRData(infile.5)[c("TNBC_NonBasal",
+                                         "TNBC_Basal","ERpHER2n_Basal")]
+color.palette.2 <- loadRData(infile.11)[c("LumB", "LumA")]
+color.palette <- c(color.palette.1, color.palette.2)
+names(color.palette)[names(color.palette) == "LumA"] <- "ERpHER2n_LumA"
+names(color.palette)[names(color.palette) == "LumB"] <- "ERpHER2n_LumB"
 
 # load Basal ids
 #basal.ids <- unname(unlist(loadRData(infile.1)["ERpHER2n_Basal"]))
@@ -178,8 +187,7 @@ cna.df <- cna.df[cna.df$chr != 23,]
 tnbc.cna.df <- tnbc.cna.df[tnbc.cna.df$chr != 23,]
 
 # sample # %altered
-basal.dat <- as.vector(apply(cna.df[sample.ids$Basal],2,function(x) {
-  (sum(x!=0)/length(x))*100}))
+basal.dat <- as.vector(apply(cna.df[sample.ids$Basal],2,function(x) {(sum(x!=0)/length(x))*100}))
 b.dat <-  as.vector(apply(tnbc.cna.df[tnbc.sample.ids$TNBC.Basal],2,function(x) {
   (sum(x!=0)/length(x))*100}))
 nb.dat <-  as.vector(apply(tnbc.cna.df[tnbc.sample.ids$TNBC.NonBasal],2,function(x) {
@@ -212,25 +220,24 @@ plot.parameters <- append(plot.parameters, list(plot.par))
 
 ################################################################################
 
-# # num singif gener per chromosme
-# a.dat <- rbind(genes.AG,genes.AL)
-# a.dat$chr <- as.numeric(a.dat$chr)
-# a.tbl <- table(a.dat$chr)
-# 
-# barplot(height=a.tbl, # num vec with gener per chromosome 
-#         names=names(a.tbl), 
-#         main="LumA: Signif genes by chromosme",
-#         ylab="Signif altered genes")
-# 
-# b.dat <- rbind(genes.BG,genes.BL)
-# b.dat$chr <- as.numeric(b.dat$chr)
-# b.tbl <- table(b.dat$chr)
-# 
-# barplot(height=b.tbl, # num vec with gener per chromosome 
-#         names=names(b.tbl), 
-#         main="LumB: Signif genes by chromosme",
-#         ylab="Signif altered genes")
+# plot all groups cn alteratiouns
+luma.dat <-  as.vector(apply(cna.df[sample.ids$LumA],2,function(x) {
+  (sum(x!=0)/length(x))*100}))
+lumb.dat <-  as.vector(apply(cna.df[sample.ids$LumB],2,function(x) {
+  (sum(x!=0)/length(x))*100}))
 
+plot.par <- list(
+  data = list(ERpHER2n_LumA=luma.dat,ERpHER2n_LumB=lumb.dat,Basal=basal.dat,TNBC_Basal=b.dat,TNBC_NonBasal=nb.dat), 
+  col = color.palette[c("ERpHER2n_LumA","ERpHER2n_LumB",
+                        "ERpHER2n_Basal","TNBC_Basal",
+                        "TNBC_NonBasal")], 
+  names = c("ERpHER2n_LumA","ERpHER2n_LumB",
+            "ERpHER2n_Basal","TNBC_Basal",
+            "TNBC_NonBasal"),
+  ylab = "Genome altered (%)",
+  main = "Genome altered")
+
+plot.parameters <- append(plot.parameters, list(plot.par))
 
 ################################################################################
 ################################################################################

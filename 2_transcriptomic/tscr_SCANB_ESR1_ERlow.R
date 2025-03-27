@@ -148,6 +148,28 @@ for (i in 1:length(gex.list)) {
   # plot.new()
   plot.parameters <- append(plot.parameters, list(plot.par))
   #plot.list <- append(plot.list, list(plot))
+  # plto 3group
+  plot.par <- list(
+    data = list(
+                ERpHER2n_Basal=basal.dat,
+                TNBC_1t10=tnbc.1t10.dat,
+                TNBC_u1=tnbc.u1.dat
+    ), 
+    col = color.palette[c(
+                          "ERpHER2n_Basal","TNBC_1t10","TNBC_u1"
+    )], 
+    names = c(
+              "ERpHER2n_Basal","TNBC_1t10","TNBC_u1"),
+    ylab = paste0(names(gex.list)[i]," mRNA expression (log2)"),
+    main = gene)
+  # boxplot(plot_parameters$data, 
+  #         col = plot_parameters$col,
+  #         names = plot_parameters$names,
+  #         ylab = plot_parameters$ylab,
+  #         main = plot_parameters$main)
+  # plot <- recordPlot()
+  # plot.new()
+  plot.parameters <- append(plot.parameters, list(plot.par))
 }
 #######################################################################
 
