@@ -28,7 +28,6 @@ infile.1 <- "./data/SCANB/0_GroupSamples/TNBC_sampleIDs.RData"
 infile.2 <- "./data/SCANB/1_clinical/raw/Summarized_SCAN_B_rel4_NPJbreastCancer_with_ExternalReview_Bosch_data.RData"
 infile.3 <- "./data/SCANB/1_clinical/raw/cst.txt"
 infile.4 <- "./data/Parameters/color_palette.RData"
-
 # output paths
 plot.file <- paste0(output.path,cohort,"_ERpercentage.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")

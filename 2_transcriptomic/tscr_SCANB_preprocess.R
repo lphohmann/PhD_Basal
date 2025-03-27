@@ -37,6 +37,7 @@ infile.3 <- "./data/SCANB/2_transcriptomic/raw/genematrix_noNeg.Rdata"
 # output paths
 outfile.1 <- paste0(data.path,"ERp_LogScaled_gex.RData") # scaled gex
 outfile.2 <- paste0(data.path,"All_LogScaled_gex.RData")
+outfile.3 <- paste0(data.path,"All_LogUnscaled_gex.RData")
 #-------------------
 # storing objects 
 #plot.list <- list() # object to store plots
@@ -118,6 +119,8 @@ gex$Ensemble_ID <- NULL
 
 # log transform FPKM data
 gex <- as.data.frame(log2(gex + 1))
+
+save(gex,file=outfile.3)
 # z-transform
 gex <- as.data.frame(t(apply(
   gex, 1, function(y) (y - mean(y)) / sd(y) ^ as.logical(sd(y))))) # for some rows there may be 0 variance so i have to handle these cases
