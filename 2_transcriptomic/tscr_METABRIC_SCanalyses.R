@@ -97,13 +97,13 @@ for(pt in unique(prop.dat$Phenotype)) {
   pt.dat <- as.vector(prop.dat[which(prop.dat$Phenotype == pt),2:ncol(prop.dat)])
   luma.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal A")]])
   lumb.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal B")]])
-  her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
+  #her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
   basal.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Basal")]])
   
   bp <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,
-               Basal=basal.dat,Her2=her2e.dat),
+               Basal=basal.dat),#,Her2=her2e.dat),
           col = color.palette,
-          names = names(color.palette),
+          names = names(color.palette)[1:3],
           ylab = paste0(pt," proportion"),
           main = pt)
   axis(3,at=1:length(bp$n),labels=bp$n)
@@ -117,13 +117,13 @@ for(pt in unique(counts.dat$Phenotype)) {
   pt.dat <- as.vector(counts.dat[which(counts.dat$Phenotype == pt),2:ncol(counts.dat)])
   luma.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal A")]])
   lumb.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal B")]])
-  her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
+  #her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
   basal.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Basal")]])
   
   bp <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,
-                     Basal=basal.dat,Her2=her2e.dat),
+                     Basal=basal.dat),#,Her2=her2e.dat),
                 col = color.palette,
-                names = names(color.palette),
+                names = names(color.palette)[1:3],
                 ylab = paste0(pt," count"),
                 main = pt)
   axis(3,at=1:length(bp$n),labels=bp$n)
@@ -158,6 +158,17 @@ for(pt in unique(combined.dat$Phenotype)) {
   lumb.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Luminal B")]])
   #her2e.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "HER2")]])
   basal.dat <- unlist(pt.dat[lum.anno$metabric_id[which(lum.anno$PAM50 == "Basal")]])
+  
+  
+  # Run Kruskal–Wallis test
+  test.df <- data.frame(
+    value = c(luma.dat, lumb.dat, basal.dat),
+    group = factor(c(rep("LumA", length(luma.dat)),
+                     rep("LumB", length(lumb.dat)),
+                     rep("Basal", length(basal.dat))))
+  )
+  kw <- kruskal.test(value ~ group, data = test.df)
+  print(paste(pt, "KW p =", signif(kw$p.value, 3)))
   
   bp <- boxplot(list(LumA=luma.dat,LumB=lumb.dat,
                      Basal=basal.dat),#,Her2=her2e.dat),

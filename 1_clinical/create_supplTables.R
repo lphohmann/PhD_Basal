@@ -37,6 +37,7 @@ infile.16 <- "./data/SCANB/1_clinical/raw/GSE278586_Annotations_Step1.txt"
 infile.17 <- "./data/SCANB/3_WGS/raw/Project2_Basal_like_Drivers_22Jan24_ForJohan.xlsx"
 infile.18 <- "./data/SCANB/3_WGS/raw/MergedAnnotations_ERp_Cohort_FailFiltered.RData"
 infile.19 <- "./data/SCANB/3_WGS/raw/SCANB_ERpos_Project2.xlsx"
+infile.20 <- "./data/SCANB/1_clinical/raw/MergedAnnotations_ERp_Cohort_FailFiltered.txt"
 # output paths
 outfile.1 <- paste0(output.path,"SCANB_SupplementaryTableS1.xlsx")
 outfile.2 <- paste0(output.path,"SCANB_SupplementaryTableS2.xlsx")
@@ -90,12 +91,16 @@ CNA.genetest.all <- merge(CNA.genetest.erp, CNA.genetest.tn, by = "gene", all = 
 DE.erp <- loadRData(infile.14)
 DE.tn <- loadRData(infile.13)
 DE.erp <- DE.erp[rownames(DE.erp) != "", ]
+DE.erp <- DE.erp[which(!is.na(DE.erp$Basal.LumA.pval) & !is.na(DE.erp$Basal.LumB.pval)),]
 DE.tn <- DE.tn[rownames(DE.tn) != "", ]
+DE.tn <- DE.tn[which(!is.na(DE.tn$Basal.tnbc.basal.pval) & !is.na(DE.tn$Basal.tnbc.nonbasal.pval)),]
 DE.erp$gene <- rownames(DE.erp)
 DE.tn$gene <- rownames(DE.tn)
 DE <- merge(DE.erp, DE.tn, by = "gene", all = TRUE)
 rownames(DE) <- DE$gene
 #DE$gene <- NULL 
+#DE[DE$gene == "AMELY",]
+#nrow(merge(DE.erp, DE.tn, by = "gene"))
 
 # ordered vectors of DEGs (ordered based on logFC for later GSEA)
 fpkm.degs.luma.df <- DE[DE$Basal.LumA.padj <= 0.05 & abs(DE$Basal.LumA.logFC) > log2(2),]
@@ -106,9 +111,23 @@ core.degs <- intersect(fpkm.degs.luma,fpkm.degs.lumb)
 
 gl.freqs <- loadRData("./data/SCANB/4_CN/processed/CNA_GLFreqs_all.RData")
 gl.freqs.tn <- loadRData("./data/SCANB/4_CN/processed/CNA_GLFreqs_TNBC.RData")
-gl.freqs.tn <- gl.freqs.tn[,!(names(gl.freqs.tn) %in% c("chr","start","end"))]
+#gl.freqs.tn <- gl.freqs.tn[,!(names(gl.freqs.tn) %in% c("chr","start","end"))]
 
-gl.freqs <- merge(gl.freqs,gl.freqs.tn,by="gene",all=TRUE)
+gl.freqs <- merge(gl.freqs,gl.freqs.tn[,!(names(gl.freqs.tn) %in% c("chr","start","end"))],
+                  by="gene",all=TRUE)
+
+# Manually fill missing chr, start, end for genes that only exist in gl.freqs.tn
+for (i in 1:nrow(gl.freqs)) {
+  if (is.na(gl.freqs$chr[i])) {
+    gene <- gl.freqs$gene[i]
+    matching_row <- gl.freqs.tn[gl.freqs.tn$gene == gene, ]
+    if (nrow(matching_row) > 0) {
+      gl.freqs$chr[i] <- matching_row$chr
+      gl.freqs$start[i] <- matching_row$start
+      gl.freqs$end[i] <- matching_row$end
+    }
+  }
+}
 
 genes.AG <- gl.freqs[gl.freqs$gene %in% 
                        CNA.genetest.all[CNA.genetest.all$LumA.Gain.padj <= 0.05, ]$gene, "gene"]
@@ -175,9 +194,9 @@ wgs.sum <- read_excel(infile.19, sheet = "Summary")
 wgs.sum$`Final QC` <- toupper(wgs.sum$`Final QC`)
 wgs.sum <- wgs.sum[wgs.sum$`Final QC` %in% c("PASS","AMBER"),]
 wgs.sum$Sample <- id.key$Specimen_id[match(wgs.sum$Tumour,id.key$Tumour)]
-wgs.sum <- wgs.sum[c("Sample","Batch","Tumour","Tumour duplicate rate",
-                     "Tumour mean depth","Normal","Normal duplicate rate",
-                     "Normal mean depth","Final_Ploidy","Final_Aberrant cell fraction",
+wgs.sum <- wgs.sum[c("Sample","Batch","Tumour",
+                     "Tumour mean depth","Normal",
+                     "Normal mean depth",
                      "Caveman counts (CLPM=0,ASMD>=140)_final",
                      "Pindel counts (QUAL>=250,Repeats>10)_final",
                      "BRASS Counts Assembly score >0_final")]
@@ -195,6 +214,13 @@ mut.list <- lapply(list(mut.1,mut.2,mut.3,mut.4,mut.5,mut.6), function(df) {
   return(df)
 })
 
+# switch out ploidy columns with correct ones
+base.ploidy <- read.table(infile.20,sep="\t",header=TRUE)
+base.ploidy$Sample <- id.key$Specimen_id[match(base.ploidy$Tumour,id.key$Tumour)]
+base.ploidy <- base.ploidy[base.ploidy$Sample %in% wgs.anno$Sample[wgs.anno$WGS==1],]
+wgs.sum$Ploidy <- base.ploidy$ASCAT_BASE_ploidy[match(wgs.sum$Tumour,base.ploidy$Tumour)]
+wgs.sum$Purity <- base.ploidy$ASCAT_BASE_purity[match(wgs.sum$Tumour,base.ploidy$Tumour)]
+
 wb <- createWorkbook()
 add_sheet(wb, "WGS_summary", wgs.sum) # check
 add_sheet(wb, "WGS_signatures", signature.dat) # check
@@ -207,14 +233,11 @@ for(i in 1:length(mut.list)) {
 
 #add_sheet(wb, "Total_mutation_counts", mb.dat)
 
+# add ascat segment dat, rbind segment dfs to make excel sheet
+add_sheet(wb, "ASCAT_segments", ascat.segments) # check
+
 # Save the workbook to an Excel file
 saveWorkbook(wb, outfile.3, overwrite = TRUE)
-
-# get complete somatic wgs data
-infile.8 <- "./data/SCANB/3_WGS/raw/2024_02_14_hrdetect_refsig_params_low_burden_sv_accounted_for.csv"
-infile.9 <- "./data/SCANB/3_WGS/processed/drivermutations_ERpHER2nBasal.RData"
-hrd.dat
-
 
 #######################################################################
 # Table 2: DE results, core set
@@ -246,7 +269,6 @@ genes.vs.basal <- data.frame(
   genes.TNBCNonBasal.gain = c(genes.nbG, rep(NA, max_length - length(genes.nbG))),
   genes.TNBCNonBasal.loss = c(genes.nbL, rep(NA, max_length - length(genes.nbL)))
 )
-
 add_sheet(wb, "CNA_frequencies", gl.freqs)
 add_sheet(wb, "CNA_genetests_vs_ERpHER2n-Basal", CNA.genetest.all)
 add_sheet(wb, "Signif_genes_vs_ERpHER2n-Basal", genes.vs.basal)

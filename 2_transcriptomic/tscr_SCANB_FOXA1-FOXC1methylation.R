@@ -45,14 +45,15 @@ plot.parameters <- list() # object to store parameters to plot base R plots agai
 
 # clusters
 foxa1.A <- c("S004527", "S001534", "S000006",
-             "S003591", "S000299", "S005062")
+             "S003591", "S000299", "S005062", 
+             "S004454", "S004629")
 foxa1.B <- c("S000037","S000327","S001023",
              "S001318","S003109","S003433",
-             "S004629","S000939","S002552","S004454")
-foxc1.A <- c("S003109","S002552","S000037",
-             "S001023","S000939","S000327","S003433")
-foxc1.B <- c("S004454","S003591","S005062","S000006",
-             "S000299","S001318","S004629","S001534")
+             "S000939","S002552")
+foxc1.A <- c("S003109","S002552","S000037","S001023",
+             "S000939","S000327","S003433","S004454",
+             "S003591","S005062","S000006","S000299")
+foxc1.B <- c("S001318","S004629","S001534")
 meth.clust <- list("FOXA1"=list("A"=foxa1.A,"B"=foxa1.B),
                    "FOXC1"=list("A"=foxc1.A,"B"=foxc1.B))
 
@@ -116,9 +117,17 @@ for (fox in c("FOXA1","FOXC1")) {
           ylab="Basal-like centroid correlation",
           xlab="shore/CGI CpGs methylation cluster",
           names = c("A","B"),
-          col=c("#fc5603","#edb374"),
+          col = c("#fc5603", "#edb374"),#adjustcolor(c("#fc5603", "#edb374"), alpha.f = 0.8),  # make boxes transparent
+          #border = "gray40",
+          #boxwex = 0.3,   # thinner box width
           main=paste0(fox,": Basal centroid vs MethClust"))
   axis(3,at=1:length(bp$n),labels=bp$n)
+  
+  stripchart(
+    list(corr.data[which(corr.data$Sample %in% fox.dat$A), ]$meanBasal, 
+         corr.data[which(corr.data$Sample %in% fox.dat$B), ]$meanBasal),
+    method = "jitter",
+    vertical = TRUE,pch = 16,cex=2,col = 1, add = TRUE)
   
   # bp <- plot(x=comb.dat$FOXA1, 
   #           y=comb.dat$meanBasal,
@@ -139,6 +148,10 @@ for (fox in c("FOXA1","FOXC1")) {
                 main=paste0(fox,": HRD prob vs MethClust"))
   axis(3,at=1:length(bp$n),labels=bp$n)
   
+  stripchart(
+    list(hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$A), ]$Probability, 
+         hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$B), ]$Probability),
+    method = "jitter",vertical = TRUE,pch = 16,cex=2,col = 1, add = TRUE)
   
   # Count occurrences of "high" and "low" for each group
   A_counts <- table(hrd.dat[which(hrd.dat$Lund.tumour.id %in% fox.dat$A), ]$HRDetect)
@@ -149,20 +162,23 @@ for (fox in c("FOXA1","FOXC1")) {
   B_percent <- B_counts / sum(B_counts) * 100
   
   # Combine percentages into a matrix
-  percent_matrix <- rbind(A_percent, B_percent)
-  
+  percent_matrix <- rbind(A_percent, B_percent=B_percent[seq(A_percent)])
+  percent_matrix[is.na(percent_matrix)] <- 0
   # Create stacked barplot (percentage format)
   bp <- barplot(t(percent_matrix), 
                 beside=TRUE, # Stacked bars
-                col=c("#fccfe6", "#fa43a1"), 
+                col=c("#fa43a1","#fccfe6"), 
                 names.arg=c("A", "B"), 
                 ylab="Percentage", 
                 ylim= c(0,100),
                 xlab="shore/CGI CpGs methylation cluster", 
                 main=paste0(fox, ": HRD prob vs MethClust"),
-                legend.text = c("HRD-Low", "HRD-High"))
+                legend.text = c("HRD-High","HRD-Low"))
   
-  axis(3,at=1:4,labels=c(A_counts,B_counts))
+  lab <- c(A_counts,B_counts[seq(A_counts)])
+  lab[is.na(lab)] <- 0
+  
+  axis(3,at=1:4,labels=c(A_counts,B_counts[seq(A_counts)]))
   
   #######################################################################
   # 3. Clusters vs mRNA expression (FOXA1,FOXC1,ESR1)
@@ -177,6 +193,10 @@ for (fox in c("FOXA1","FOXC1")) {
                   col=c("#fc5603","#edb374"),
                   main=paste0(fox,": ",gene," vs MethClust"))
     axis(3,at=1:length(bp$n),labels=bp$n)
+    stripchart(
+      list(as.numeric(gex.data[gene, fox.dat$A]), 
+           as.numeric(gex.data[gene, fox.dat$B])),
+      method = "jitter",vertical = TRUE,pch = 16,cex=2,col = 1, add = TRUE)
   }
   
   #######################################################################
@@ -192,6 +212,10 @@ for (fox in c("FOXA1","FOXC1")) {
                   col=c("#fc5603","#edb374"),
                   main=paste0(fox,": ",metagene," vs MethClust"))
     axis(3,at=1:length(bp$n),labels=bp$n)
+    stripchart(
+      list(as.numeric(mg.scores[metagene, fox.dat$A]), 
+           as.numeric(mg.scores[metagene, fox.dat$B])),
+      method = "jitter",vertical = TRUE,pch = 16,cex=2,col = 1, add = TRUE)
   }
 }
 

@@ -65,7 +65,7 @@ gene.anno <- loadRData("./data/SCANB/4_CN/processed/CNA_genelevel_all.RData")[["
 gene.anno <- gene.anno[c("gene","chr","start","end")]
 #head(gene.anno)
 
-# load and prep gene expr. data
+# load and prep cn data
 cn.data <- read.delim(infile.2,header = TRUE, sep = "\t", dec = ".")
 colnames(cn.data)[2:ncol(cn.data)] <- gsub("\\.", "-", colnames(cn.data)[2:ncol(cn.data)])
 cn.data$Entrez_Gene_Id <- NULL

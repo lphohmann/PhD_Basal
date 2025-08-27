@@ -14,8 +14,11 @@ source("./scripts/src/general_functions.R")
 source("./scripts/2_transcriptomic/src/tscr_functions.R")
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(readxl,
-               reshape2,
-               GenVisR)
+               reshape2)#,GenVisR) # crashes if loaded with pacman
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#  install.packages("BiocManager")
+#BiocManager::install("GenVisR")
+library(GenVisR)
 #-------------------
 # set/create output directories
 # for data

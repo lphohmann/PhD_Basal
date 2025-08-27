@@ -37,7 +37,7 @@ dir.create(data.path)
 # input paths
 infile.1 <- "./data/SCANB/3_WGS/raw/ASCAT_segments_list_BASEprocessing.RData"
 # output paths
-outfile.1 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData"
+outfile.1 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel.RData" 
 #plot.file <- paste0(output.path,cohort,"_i.pdf")
 #txt.file <- paste0(output.path,cohort,"_i.txt")
 #-------------------
@@ -75,8 +75,24 @@ ascat.list <- loadRData(infile.1)
 # prepare the gene annotation data to which the segments are mapped
 ################################################################################
 
+# pten case
+outfile.1 <- "./data/SCANB/3_WGS/processed/ASCAT_genelevel_PTEN.RData" #PTEN
+genes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene,
+                   single.strand.genes.only = FALSE)
+genes[["5728"]] #pten info
+# chr10 87862638-87971930      +
+pten_row <- data.frame(
+  chr = "10",
+  start = 87862638,
+  end = 87971930,
+  SYMBOL = "PTEN",
+  row.names = "5728"
+)
+# 
+
 # get gene positions & convert to hgnc symbols
 genes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene) # meta = entrez ID)
+
 ENTREZID2SYMBOL <- biomaRt::select(org.Hs.eg.db, mcols(genes)$gene_id, c("ENTREZID", "SYMBOL"))
 stopifnot(identical(ENTREZID2SYMBOL$ENTREZID, mcols(genes)$gene_id))
 mcols(genes)$SYMBOL <- ENTREZID2SYMBOL$SYMBOL
@@ -90,6 +106,9 @@ genes <- genes[, !(names(genes) %in% c("gene_id", "strand", "width"))]
 numeric_columns <- c('chr', 'start', 'end')
 genes[, numeric_columns] <- lapply(genes[, numeric_columns], as.numeric)
 
+# pten case 
+genes <- rbind(pten_row,genes)
+genes <- genes[genes$SYMBOL=="PTEN",]
 ################################################################################
 # convert to gene matrix (1 row per gene), also stored in list
 ################################################################################
@@ -174,3 +193,10 @@ end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(time.taken)
 # takes approx 9.749125 hours
+
+
+# pten case
+x <- loadRData("./data/SCANB/3_WGS/processed/ASCAT_genelevel_PTEN.RData" )
+pten.df <- do.call(rbind, x)
+save(pten.df, file= "./data/SCANB/3_WGS/processed/ASCAT_genelevel_PTEN_df.RData")
+
